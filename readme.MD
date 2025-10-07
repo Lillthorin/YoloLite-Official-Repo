@@ -59,6 +59,7 @@ To create a custom model use the custom.yaml template and choose any backbone av
  - head_depth: 2 /int
 
 ![alt text](images/image1.png)
+
 ##Inference
 
 To test trained models interference use tools/infer.py:
@@ -124,6 +125,7 @@ Throughput ≈ 11.87 img/s
 
 
 !python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
