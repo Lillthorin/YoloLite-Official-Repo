@@ -1,0 +1,38 @@
+logging:
+  log_dir: runs/train
+
+loss:
+  lambda_box: 5.0
+  lambda_obj: 1.0
+  lambda_cls: 1.0
+  focal_loss: false
+  center_mode: v8            
+  wh_mode: softmax
+  center_radius: 2.0
+  assign_cls_weight: 0.5
+
+training:
+  loss_type: simota           
+  amp: true
+  backbone_grad_scale: null
+  batch_size: 8
+  bb_lr_mult: 0.1
+  ema: false
+  epochs: 200
+  freeze_backbone_epochs: 5
+  grad_clip: 1.0
+  head_lr_mult: 1.0
+  lr: 1e-3
+  neck_lr_mult: 1.0
+  num_workers: 8
+  optimizer: adamw
+  save_every: 25
+  scheduler: cosine
+  seed: 1337
+  warmup_epochs: 0
+  weight_decay: 1e-4
+  img_size: 640
+  multi_scale_sizes: [320, 416, 512, 640]   
+  augment: true
+  use_p6: false
+  resume:

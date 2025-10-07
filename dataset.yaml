@@ -1,0 +1,14 @@
+
+train: ..\Dataset\train\images # train images
+val: ..\Dataset\valid\images # val images
+test: 
+
+# Classes
+nc: 3 # number of classes
+names: ['class0', 'class1', 'class2']  # class names
+
+
+
+
+
+

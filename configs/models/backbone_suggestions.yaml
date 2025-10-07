@@ -1,0 +1,54 @@
+CPU:
+  1: mobilenetv3_small_100
+  2: mobilenetv3_large_100
+  3: efficientnet_b0 #b0-b4
+  4: tf_efficientnet_lite0 #0-3
+  5: tinynet_a # a b c d
+  6: rexnet_100
+  7: ghostnet_100
+  8: regnetx_3_2gf
+  9: resnet18 
+
+
+GPU:
+
+  1: convnextv2_tiny 
+
+  2: edgenext_xx_small / edgenext_x_small 
+
+  3: repvgg_a0 
+
+
+
+  4: convnext_tiny
+
+  5: tf_efficientnetv2_s
+
+  6: repvgg_b0
+
+  7: resnet34d 
+
+
+  8: convnext_small
+
+  9: tf_efficientnetv2_m
+
+  10: regnety_4_0gf / regnety_8_0gf
+
+  11: resnet50d 
+
+
+
+  12: convnext_base
+
+  13: beit_base_patch16_224 
+
+  14: maxxvitv2_tiny/small 
+
+
+
+  15: convnext_large
+
+  16: tf_efficientnetv2_l
+
+  17: swin_base_patch4_window7_224 
