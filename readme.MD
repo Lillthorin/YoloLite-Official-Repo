@@ -1,5 +1,10 @@
 
+### This repo is made for anyone who wants to train a custom Yolo model. There are two architectures YoloLiteMS and YoloLiteMS_CPU
 
+The models backbone are built via timm, it is your resposibillity to follow backbones licenses if they differ from this repo!
+This repo is fresh and are still being updated. 
+
+## Dataset and training
 Construct yaml as follow: 
     
 ![dataset.yaml](images/image.png)
@@ -54,7 +59,7 @@ To create a custom model use the custom.yaml template and choose any backbone av
  - head_depth: 2 /int
 
 ![alt text](images/image1.png)
-
+##Inference
 
 To test trained models interference use tools/infer.py:
     Image gets saved to runs/infer/x 
@@ -73,7 +78,7 @@ To test trained models interference use tools/infer.py:
 !python tools/infer.py --weights runs/train/1/best_model_state.pt --img "image1.jpg"
 
 
-Export to onnx: 
+##Export to onnx 
 
    
    --weights", required=True, help="Path to checkpoint (.pt/.pth)
@@ -119,4 +124,5 @@ Throughput ≈ 11.87 img/s
 
 
 !python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
