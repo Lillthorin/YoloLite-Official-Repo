@@ -1,5 +1,5 @@
 
-### This repo is made for anyone who wants to train a custom Yolo model. There are two architectures YoloLiteMS and YoloLiteMS_CPU
+# This repo is made for anyone who wants to train a custom Yolo model. There are two architectures YoloLiteMS and YoloLiteMS_CPU
 
 The models backbone are built via timm, it is your resposibillity to follow backbones licenses if they differ from this repo!
 This repo is fresh and are still being updated. 
@@ -124,5 +124,6 @@ Throughput ≈ 11.87 img/s
 
 
 !python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
