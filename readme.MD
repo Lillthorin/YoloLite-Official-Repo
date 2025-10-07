@@ -40,13 +40,15 @@ Construct yaml as follow:
     --resume, type=str, default=None, help="Resume training from last checkpoint if available"
     --lr, type=float, default=None, help="Override learning rate if set"
 
-!python tools/train.py --model "path_to_config" --data "path_to_dataset.yaml" --epochs 100 --img_size 640
+pip install -r requirements.txt
+python tools/train.py --model configs/your_model.yaml --data dataset.yaml --epochs 100 --img_size 640
+
 
 To resume training:
 
 LR is by default 0.001, when resuming training you might want to lower it with --lr 
 
-!python tools/train.py --model "runs/train/1/merged_config" --data "path_to_dataset.yaml" --resume "runs/train/1/best_model_state.pt" --lr 0.0001
+python tools/train.py --model "runs/train/1/merged_config" --data "path_to_dataset.yaml" --resume "runs/train/1/best_model_state.pt" --lr 0.0001
 
 
 
@@ -62,7 +64,7 @@ To create a custom model use the custom.yaml template and choose any backbone av
 
 ##Inference
 
-To test trained models interference use tools/infer.py:
+To test trained models inference use tools/infer.py:
     Image gets saved to runs/infer/x 
 
     
@@ -76,7 +78,7 @@ To test trained models interference use tools/infer.py:
     --max_det, type=int, default=300
     --save_txt, action="store_true", help="Saves YOLO-format txt per img"
     
-!python tools/infer.py --weights runs/train/1/best_model_state.pt --img "image1.jpg"
+python tools/infer.py --weights runs/train/1/best_model_state.pt --img "image1.jpg"
 
 
 ##Export to onnx 
@@ -94,7 +96,7 @@ To test trained models interference use tools/infer.py:
     --verbose", action="store_true", help="More print"
 
 
-!python export/export_onnx.py --weights runs/train/1/best_model_state.pt --img-size 640 --device cpu --simplify
+python export/export_onnx.py --weights runs/train/1/best_model_state.pt --img-size 640 --device cpu --simplify
 
 
 Test inference speed:
@@ -124,7 +126,8 @@ Throughput ≈ 11.87 img/s
     --inter, type=int, default=0, help="inter_op_num_threads (0=auto)"
 
 
-!python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
