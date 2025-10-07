@@ -45,11 +45,13 @@ LR is by default 0.001, when resuming training you might want to lower it with -
 
 
 
-To create a custom model use the custom.yaml template and choose any backbone available in timm. 
-  depth_multiple: 0.7 / float
-  width_multiple: 0.5 / float
-  fpn_channels: 256 /int divisible with 8/32
-  head_depth: 2 /int
+To create a custom model use the custom.yaml template and choose any backbone available in timm:
+
+ - backbone: any
+ - depth_multiple: 0.7 / float
+ - width_multiple: 0.5 / float
+ - fpn_channels: 256 /int divisible with 8/32
+ - head_depth: 2 /int
 
 ![alt text](images/image1.png)
 
@@ -117,3 +119,4 @@ Throughput ≈ 11.87 img/s
 
 
 !python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
