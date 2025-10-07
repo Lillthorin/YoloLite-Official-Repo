@@ -115,4 +115,5 @@ Throughput ≈ 11.87 img/s
     --intra, type=int, default=0, help="intra_op_num_threads (0=auto)"
     --inter, type=int, default=0, help="inter_op_num_threads (0=auto)"
 
+
 !python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
