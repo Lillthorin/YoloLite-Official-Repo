@@ -62,7 +62,7 @@ To create a custom model use the custom.yaml template and choose any backbone av
 
 ![alt text](images/image1.png)
 
-##Inference
+## Inference
 
 To test trained models inference use tools/infer.py:
     Image gets saved to runs/infer/x 
@@ -81,7 +81,7 @@ To test trained models inference use tools/infer.py:
 python tools/infer.py --weights runs/train/1/best_model_state.pt --img "image1.jpg"
 
 
-##Export to onnx 
+## Export to onnx 
 
    
    --weights", required=True, help="Path to checkpoint (.pt/.pth)
@@ -127,6 +127,7 @@ Throughput ≈ 11.87 img/s
 
 
 python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
