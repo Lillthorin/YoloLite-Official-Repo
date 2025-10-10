@@ -183,6 +183,7 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--use_p6", type=bool, default=False)
     ap.add_argument("--resume", type=str, default=None, help="Resume training from last checkpoint if available")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate if set")
+    ap.add_argument("--save_every", type=int, default=25)
     
     return ap
 
@@ -206,4 +207,6 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
         config["training"]["resume"] = str(args.resume)
     if args.lr is not None:
         config["training"]["lr"] = float(args.lr)
+    if args.save_every is not None:
+        config["training"]["save_every"] = int(args.save_every)
     return config
