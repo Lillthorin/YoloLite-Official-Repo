@@ -1,0 +1,10 @@
+
+
+# configs/models/yololite_cpu_xs.yaml
+model:
+  arch: YOLOLiteMS_CPU
+  backbone: mobilenetv3_small_100
+  depth_multiple: 0.85
+  width_multiple: 0.70
+  fpn_channels: 192
+  head_depth: 1
