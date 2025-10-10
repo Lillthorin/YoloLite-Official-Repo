@@ -21,7 +21,7 @@ from scripts.helpers.schedulers import build_scheduler
 from scripts.helpers.helpers import yolo_collate, _coco_eval_from_lists,  set_seed, save_val_debug_anchorfree, _decode_batch_to_coco_dets, _xyxy_to_xywh, _write_json_atomic, _append_csv
 from scripts.args.build_args import build_argparser, load_configs, apply_overrides
 from scripts.data.plot_metrics import plot_metrics
-
+from scripts.data.p_r_f1 import build_curves_from_coco
 def save_checkpoint_state(model, metrics: dict, class_names, config: dict, out_path: str):
     cpu_state = {k: v.cpu() for k, v in model.state_dict().items()}
     meta = {
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         config["dataset"]["train_labels"],
         img_size=IMG_SIZE,
         is_train=True if use_augment else False,
-        transforms=get_val_transform(IMG_SIZE)
+        transforms=get_strong_transform(IMG_SIZE) if use_augment else get_val_transform(IMG_SIZE)
     )
     val_ds = YoloDataset(
         config["dataset"]["val_images"],
@@ -216,7 +216,8 @@ if __name__ == "__main__":
     print(model)
     print(f"Starting training on {DEVICE}, {len(train_ds)} train images, {len(val_ds)} val images, img-size: {IMG_SIZE}")
     best_val = float(0.000)
-    train_losses, val_losses = [], []
+    train_losses, val_losses, mAP, F1, Recall, Precision, best_conf  = [], [], [], [], [], [], []
+    Precision_fixed, Recall_fixed, F1_fixed = [], [], []
     epochs = int(config["training"]["epochs"])
     warmup_epochs = int(config["training"].get("warmup_epochs", 0))
     if warmup_epochs > 0 and sched_type != "onecycle":
@@ -224,20 +225,26 @@ if __name__ == "__main__":
             pg["lr"] = base_lr * 0.1
     
 
-    
+
     class_names = config["dataset"]["names"]
-    best_ckpt_path = os.path.join(log_dir, "best_model_state.pt")
-    last_ckpt_path = os.path.join(log_dir, "last_model_state.pt")
+    weight_folder = os.path.join(log_dir, 'weights')
+    os.makedirs(weight_folder, exist_ok=True)
+    best_ckpt_path = os.path.join(weight_folder, "best_model_state.pt")
+    last_ckpt_path = os.path.join(weight_folder, "last_model_state.pt")
+    best_no_aug = os.path.join(weight_folder, "best_no_aug.pt")
     metric_key = "AP50"  # eller "AP" om du vill optimera på COCO AP
     best_metric = -1.0
-
+    best_metric_no_aug = -1.0
+    val_thresh = 0.5
     for epoch in range(epochs):
-        if epoch == 3 and use_augment:
-            train_ds.transforms = get_strong_transform(IMG_SIZE)
         if epoch == (int(epochs*0.3)) and use_augment:
             train_ds.transforms = get_base_transform(IMG_SIZE)
-        if epoch > (int(epochs*0.7)):
+        if epoch == (int(epochs*0.6)) and use_augment:
+            train_ds.is_train = False
+        if epoch > (int(epochs*0.9)):
             train_ds.transforms = get_val_transform(IMG_SIZE)
+            use_augment = False
+            
         # -------------------- TRAIN --------------------
         model.train()
         start = time.time()
@@ -329,14 +336,14 @@ if __name__ == "__main__":
                 if i == t:
                     save_val_debug_anchorfree(
                         imgs, preds, epoch, out_dir=log_dir,
-                        img_size=IMG_SIZE, conf_th=0.3, iou_th=0.3,
+                        img_size=IMG_SIZE, conf_th=val_thresh, iou_th=0.3,
                         topk=300, center_mode="v8", wh_mode="softplus"
                     )
 
                 # Bygg COCO GT/DT
                 
                 batch_dets = _decode_batch_to_coco_dets(
-                    preds, img_size=IMG_SIZE, conf_th=0.01, iou_th=0.65, add_one=True
+                    preds, img_size=IMG_SIZE, conf_th=0.001, iou_th=0.65, add_one=True
                 )
 
                 for b in range(B):
@@ -396,7 +403,14 @@ if __name__ == "__main__":
         )
 
         elapsed = time.time() - start
-
+        summary = build_curves_from_coco(
+            coco_images=coco_images,
+            coco_anns=coco_anns,
+            coco_dets=coco_dets,
+            out_dir=Path(log_dir) / f"curves",
+            iou=0.50,
+            steps=201
+        )
         # --------- Loggning till filer (ingen print-spam) ----------
         metrics_csv = os.path.join(log_dir, "metrics.csv")
         metrics_last_json = os.path.join(log_dir, "last_metrics.json")
@@ -406,68 +420,109 @@ if __name__ == "__main__":
         now_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
 
         csv_header = [
-            "epoch","AP","AP50","AP75","APS","APM","APL","AR",
+            "epoch","AP","AP50","AP75","APS","APM","APL","AR", "F1", "precision","recall", "best_conf",
             "train_loss","val_loss","lr_g0","lr_g1","lr_g2","elapsed_s","timestamp"
         ]
         csv_row = [
             epoch+1,
             coco_stats["AP"], coco_stats["AP50"], coco_stats["AP75"],
             coco_stats["APS"], coco_stats["APM"], coco_stats["APL"], coco_stats["AR"],
+            summary["best_f1"],summary["precision_at_best"],summary["recall_at_best"],summary["best_conf"],
             avg_train, avg_val,
             *(lrs + [None, None, None])[:3],
             elapsed, now_iso
-        ]
+        ] 
+        
         _append_csv(metrics_csv, csv_header, csv_row)
+        
+        
 
-        last_payload = {
-            "epoch": epoch+1,
-            "AP": coco_stats["AP"],
-            "AP50": coco_stats["AP50"],
-            "AP75": coco_stats["AP75"],
-            "APS": coco_stats["APS"],
-            "APM": coco_stats["APM"],
-            "APL": coco_stats["APL"],
-            "AR": coco_stats["AR"],
-            "train_loss": float(avg_train),
-            "val_loss": float(avg_val),
-            "lrs": lrs,
-            "elapsed_s": float(elapsed),
-            "timestamp": now_iso,
-        }
-        _write_json_atomic(metrics_last_json, last_payload)
-
-        if not hasattr(globals(), "_best_ap50"):
-            _best_ap50 = -1.0
-        if coco_stats["AP50"] > _best_ap50:
-            _best_ap50 = coco_stats["AP50"]
-            best_payload = dict(last_payload)
-            best_payload["best_by"] = "AP50"
-            _write_json_atomic(metrics_best_json, best_payload)
 
         if scheduler is not None and sched_type == "reduceonplat":
             scheduler.step(avg_val)
 
+        # The code snippet provided is written in Python and performs the following actions:
         current = float(coco_stats.get(metric_key, -1.0))
-        if current > best_metric:
+        if (current > best_metric) and use_augment:
             best_metric = current
             # Spara EN fil: state_dict + metadata. Undvik torch.save(model)
             model_eval_cpu = model_eval.to("cpu").eval()
             save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_ckpt_path)
             model_eval.to(DEVICE).eval()
-            print(f"✓ Ny best {metric_key}={best_metric:.4f} sparad till {best_ckpt_path}")
+            print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_ckpt_path}")
+            
+        #Save best model without augmentation
+        if (current > best_metric_no_aug) and not use_augment:
+            best_metric_no_aug = current
+            # Spara EN fil: state_dict + metadata. Undvik torch.save(model)
+            model_eval_cpu = model_eval.to("cpu").eval()
+            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_no_aug)
+            model_eval.to(DEVICE).eval()
+            print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_no_aug}")   
+        #Save every x epoch
+        if (epoch+1) % save_every == 0:
+            save_path = os.path.join(weight_folder, f"epoch_{epoch+1}.pt")
+            model_eval_cpu = model_eval.to("cpu").eval()
+            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, save_path)   
+            model_eval.to(DEVICE).eval()
 
         
         model_eval_cpu = model_eval.to("cpu").eval()
         save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, last_ckpt_path)
         model_eval.to(DEVICE).eval()
+        mAP.append(coco_stats["AP50"]*100)
+        F1.append(summary["best_f1"]*100)
+        Recall.append(summary["recall_at_best"]*100)
+        Precision.append(summary["precision_at_best"]*100)  
+        best_conf.append(float(summary["best_conf"]))
+        Precision_fixed.append(summary["precision_at_fixed_conf"]*100)
+        Recall_fixed.append(summary["recall_at_fixed_conf"]*100)
+        F1_fixed.append(summary["f1_at_fixed_conf"]*100)
+        fixed_conf = summary["fixed_conf"]
         # Losskurva (tyst om den misslyckas)
+        val_thresh = best_conf[-1]
         try:
             import matplotlib.pyplot as plt
+            #Loss
             plt.figure()
             plt.plot(train_losses, label="Train")
             plt.plot(val_losses, label="Val")
             plt.xlabel("Epoch"); plt.ylabel("Loss"); plt.legend(); plt.title("Loss Curve")
             plt.savefig(os.path.join(log_dir, "loss_curve.png")); plt.close()
+            # a) Precision/Recall/F1 över epoker (vid best_conf per epoch)
+            plt.figure()
+            plt.plot(Precision, label="Precision@best_conf")
+            plt.plot(Recall,    label="Recall@best_conf")
+            plt.plot(F1,        label="F1@best_conf")
+            plt.xlabel("Epoch"); plt.ylabel("Metric (%)"); plt.title(f"Metrics @ best_conf per epoch")
+            plt.legend(); plt.grid(True, linestyle=":")
+            plt.savefig(os.path.join(log_dir, "metrics_at_best_conf_over_epochs.png")); plt.close()
+
+            # b) Visa hur tröskeln driver över tid
+            plt.figure()
+            plt.plot(best_conf, label="best_conf")
+            plt.xlabel("Epoch"); plt.ylabel("Confidence"); plt.title("best_conf per epoch")
+            plt.ylim(0, 1); plt.legend(); plt.grid(True, linestyle=":")
+            plt.savefig(os.path.join(log_dir, "best_conf_over_epochs.png")); plt.close()
+           
+
+            plt.figure()
+            plt.plot(Precision_fixed, label=f"Precision@{fixed_conf:.2f}")
+            plt.plot(Recall_fixed,    label=f"Recall@{fixed_conf:.2f}")
+            plt.plot(F1_fixed,        label=f"F1@{fixed_conf:.2f}")
+            plt.xlabel("Epoch"); plt.ylabel("Metric (%)"); plt.title(f"Metrics @ fixed conf={fixed_conf:.2f}")
+            plt.legend(); plt.grid(True, linestyle=":")
+            plt.savefig(os.path.join(log_dir, f"metrics_at_conf_{fixed_conf:.2f}_over_epochs.png")); plt.close()
+            
+           #mAP
+            plt.figure()
+            plt.plot(mAP, label="mAP")
+            plt.xlabel("Epoch"); plt.ylabel("mAP (%)"); plt.legend(); plt.title("mAP (%)")
+            plt.savefig(os.path.join(log_dir, "mAP_curve.png")); plt.close()
+
+            
+
+         
         except Exception:
             pass
 
