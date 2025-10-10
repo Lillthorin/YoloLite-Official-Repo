@@ -80,7 +80,7 @@ To test trained models inference use tools/infer.py:
     --max_det, type=int, default=300
     --save_txt, action="store_true", help="Saves YOLO-format txt per img"
     
-python tools/infer.py --weights runs/train/1/best_model_state.pt --img "image1.jpg"
+    python tools/infer.py --weights runs/train/1/best_model_state.pt --img "image1.jpg"
 
 
 ## Export to onnx 
@@ -98,7 +98,7 @@ python tools/infer.py --weights runs/train/1/best_model_state.pt --img "image1.j
     --verbose", action="store_true", help="More print"
 
 
-python export/export_onnx.py --weights runs/train/1/best_model_state.pt --img-size 640 --device cpu --simplify
+    python export/export_onnx.py --weights runs/train/1/best_model_state.pt --img-size 640 --device cpu --simplify
 
 
 Test inference speed:
@@ -128,7 +128,8 @@ Throughput ≈ 11.87 img/s
     --inter, type=int, default=0, help="inter_op_num_threads (0=auto)"
 
 
-python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+    python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
