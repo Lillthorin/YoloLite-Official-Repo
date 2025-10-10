@@ -40,15 +40,17 @@ Construct yaml as follow:
     --resume, type=str, default=None, help="Resume training from last checkpoint if available"
     --lr, type=float, default=None, help="Override learning rate if set"
     --save_every", type=int, default=25, help="Save every x epoch"
+
 pip install -r requirements.txt
-python tools/train.py --model configs/your_model.yaml --data dataset.yaml --epochs 100 --img_size 640
+
+    python tools/train.py --model configs/your_model.yaml --data dataset.yaml --epochs 100 --img_size 640
 
 
 To resume training:
 
 LR is by default 0.001, when resuming training you might want to lower it with --lr 
 
-python tools/train.py --model "runs/train/1/merged_config" --data "path_to_dataset.yaml" --resume "runs/train/1/best_model_state.pt" --lr 0.0001
+    python tools/train.py --model "runs/train/1/merged_config" --data "path_to_dataset.yaml" --resume "runs/train/1/best_model_state.pt" --lr 0.0001
 
 
 
@@ -127,6 +129,7 @@ Throughput ≈ 11.87 img/s
 
 
 python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
