@@ -39,7 +39,7 @@ Construct yaml as follow:
     --use_p6, type=bool, default=False // Active on larger images with big GT boxes
     --resume, type=str, default=None, help="Resume training from last checkpoint if available"
     --lr, type=float, default=None, help="Override learning rate if set"
-
+    --save_every", type=int, default=25, help="Save every x epoch"
 pip install -r requirements.txt
 python tools/train.py --model configs/your_model.yaml --data dataset.yaml --epochs 100 --img_size 640
 
@@ -127,6 +127,7 @@ Throughput ≈ 11.87 img/s
 
 
 python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
