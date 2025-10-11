@@ -36,3 +36,5 @@ training:
   augment: true
   use_p6: false
   resume:
+  save_by: 
+  
