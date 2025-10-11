@@ -183,12 +183,14 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--use_p6", type=bool, default=False)
     ap.add_argument("--resume", type=str, default=None, help="Resume training from last checkpoint if available")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate if set")
-    ap.add_argument("--save_every", type=int, default=25)
+    ap.add_argument("--save_every", type=int, default=25, help="Save every x epoch")
+    ap.add_argument("--save_by", type=str, default='AP50', help="Save best model by mAP50, viable setting [AP50, AP75, AP, AR, APS, APM, APL,P, R, F1]")  
     
     return ap
 
 def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
     # CLI ska få sista ordet
+    ok_save_by = ["AP50", "AP75", "AP", "AR", "APS", "APM", "APL","P", "R", "F1"]
     if args.epochs is not None:
         config["training"]["epochs"] = int(args.epochs)
     if args.batch_size is not None:
@@ -209,4 +211,10 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
         config["training"]["lr"] = float(args.lr)
     if args.save_every is not None:
         config["training"]["save_every"] = int(args.save_every)
+    if args.save_by is not None:
+        if args.save_by in ok_save_by:
+            config["training"]["save_by"] = str(args.save_by)
+        else:
+            print("Invalid token for save_by. Valid tokens: [AP50, AP75, AP, AR, APS, APM, APL,P, R, F1]")
+            raise ValueError
     return config
