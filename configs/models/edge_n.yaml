@@ -1,7 +1,0 @@
-model:
-  arch: YOLOLiteMS_CPU
-  backbone: mobilenetv4_conv_small_050
-  depth_multiple: 0.65
-  width_multiple: 0.60
-  fpn_channels: 160
-  head_depth: 1

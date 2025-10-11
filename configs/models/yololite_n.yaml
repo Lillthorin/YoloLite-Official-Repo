@@ -1,8 +1,0 @@
-# n
-model:
-  arch: YOLOLiteMS
-  backbone: tf_efficientnet_lite0
-  depth_multiple: 1.0
-  width_multiple: 1.0
-  fpn_channels: 196
-  head_depth: 1
