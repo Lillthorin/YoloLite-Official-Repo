@@ -225,14 +225,22 @@ if __name__ == "__main__":
             pg["lr"] = base_lr * 0.1
     
 
-
+    #Define save by;
+    save_by = config["training"]["save_by"]
+    if save_by == 'P':
+        save_by = 'precision_at_best'
+    elif save_by == "R":
+        save_by = 'recall_at_best'
+    elif save_by == "F1":
+        save_by = 'best_f1'
+    
     class_names = config["dataset"]["names"]
     weight_folder = os.path.join(log_dir, 'weights')
     os.makedirs(weight_folder, exist_ok=True)
     best_ckpt_path = os.path.join(weight_folder, "best_model_state.pt")
     last_ckpt_path = os.path.join(weight_folder, "last_model_state.pt")
     best_no_aug = os.path.join(weight_folder, "best_no_aug.pt")
-    metric_key = "AP50"  # eller "AP" om du vill optimera på COCO AP
+    metric_key = save_by  # eller "AP" om du vill optimera på COCO AP
     best_metric = -1.0
     best_metric_no_aug = -1.0
     val_thresh = 0.5
@@ -442,7 +450,8 @@ if __name__ == "__main__":
             scheduler.step(avg_val)
 
         # The code snippet provided is written in Python and performs the following actions:
-        current = float(coco_stats.get(metric_key, -1.0))
+        save_by_dict = coco_stats if save_by in coco_stats else summary
+        current = save_by_dict[metric_key]
         if (current > best_metric) and use_augment:
             best_metric = current
             # Spara EN fil: state_dict + metadata. Undvik torch.save(model)
