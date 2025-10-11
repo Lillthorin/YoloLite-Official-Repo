@@ -1,7 +1,7 @@
 # configs/models/yololite_cpu_s.yaml
 model:
   arch: YOLOLiteMS_CPU
-  backbone: mobilenetv4_conv_small      # Stabil, bred CPU-support
+  backbone: mobilenetv4_conv_small 
   depth_multiple: 0.90
   width_multiple: 0.75
   fpn_channels: 256

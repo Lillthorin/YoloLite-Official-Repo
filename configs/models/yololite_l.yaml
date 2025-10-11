@@ -1,7 +1,7 @@
 # l  (P6 auto-on när img_size > 640)
 model:
   arch: YOLOLiteMS
-  backbone: efficientnet_b3
+  backbone: tf_efficientnet_lite3
   depth_multiple: 1.0
   width_multiple: 1.0
   fpn_channels: 512

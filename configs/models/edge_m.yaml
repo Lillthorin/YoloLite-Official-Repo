@@ -1,8 +1,8 @@
 # configs/models/yololite_cpu_m.yaml
 model:
   arch: YOLOLiteMS_CPU
-  backbone: mobilenetv4_conv_small  
-  depth_multiple: 1.00
-  width_multiple: 1.00
-  fpn_channels: 160
+  backbone: mobilenetv4_conv_small  # 0.75-variant för mittsegmentet
+  depth_multiple: 0.95
+  width_multiple: 0.85
+  fpn_channels: 288
   head_depth: 2
