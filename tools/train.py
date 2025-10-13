@@ -4,10 +4,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 from pathlib import Path
-from copy import deepcopy
 import random
 from tqdm.auto import tqdm
-    
+import matplotlib.pyplot as plt
 ROOT = os.getcwd()
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
@@ -44,7 +43,22 @@ def _build_num_anchors(use_p6, use_p2):
         return (1, 1, 1, 1)
     else:
         return (1, 1, 1)
-    
+def plot_metric_vs_conf(x, y, title, ylabel, best_idx, fixed_conf, out_path):
+    import numpy as np, matplotlib.pyplot as plt
+    plt.figure()
+    plt.plot(x, y, label=title, linewidth=2)
+    # markera "best F1" och "fixed_conf"
+    if best_idx is not None:
+        plt.axvline(float(x[best_idx]), linestyle="--", alpha=0.6, label=f"best @ {float(x[best_idx]):.3f}")
+    plt.xlabel("Confidence")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.xlim(0, 1); plt.ylim(0, 1)
+    plt.grid(True, linestyle=":")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_path)
+    plt.close()
 
 # =============== Main ===============
 if __name__ == "__main__":
@@ -245,13 +259,12 @@ if __name__ == "__main__":
     best_metric_no_aug = -1.0
     val_thresh = 0.5
     for epoch in range(epochs):
-        if epoch == (int(epochs*0.3)) and use_augment:
+        if epoch == (int(epochs*0.4)) and use_augment:
             train_ds.transforms = get_base_transform(IMG_SIZE)
-        if epoch == (int(epochs*0.6)) and use_augment:
-            train_ds.is_train = False
         if epoch > (int(epochs*0.9)):
             train_ds.transforms = get_val_transform(IMG_SIZE)
             use_augment = False
+            train_ds.is_train = False
             
         # -------------------- TRAIN --------------------
         model.train()
@@ -401,7 +414,8 @@ if __name__ == "__main__":
                                     box=f"{vb/(i+1):.4f}",
                                     obj=f"{vo/(i+1):.4f}",
                                     cls=f"{vc/(i+1):.4f}")
-
+                
+        # Evaluate every : if epoch % 5 == 0:
         avg_val = v_running / max(1, len(val_loader))
         val_losses.append(avg_val)
 
@@ -459,6 +473,29 @@ if __name__ == "__main__":
             save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_ckpt_path)
             model_eval.to(DEVICE).eval()
             print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_ckpt_path}")
+            try:
+                plt.figure()
+                plt.plot(summary["confs"], summary["P_curve"])
+                plt.xlabel("Confidence threshold"); plt.ylabel("Precision")
+                plt.title(f"Precision vs Confidence @ iou: 0.5")
+                plt.grid(True, linestyle=":"); plt.tight_layout()
+                plt.savefig(os.path.join(log_dir, "P_curve.png")); plt.close()
+
+                plt.figure()
+                plt.plot(summary["confs"], summary["R_curve"])
+                plt.xlabel("Confidence threshold"); plt.ylabel("Recall")
+                plt.title(f"Recall vs Confidence @ iou: 0.5")
+                plt.grid(True, linestyle=":"); plt.tight_layout()
+                plt.savefig(os.path.join(log_dir, "R_curve.png")); plt.close()
+
+                plt.figure()
+                plt.plot(summary["confs"], summary["F1_curve"])
+                plt.xlabel("Confidence threshold"); plt.ylabel("F1")
+                plt.title(f"F1 vs Confidence @ iou: 0.5")
+                plt.grid(True, linestyle=":"); plt.tight_layout()
+                plt.savefig(os.path.join(log_dir, "F1_curve.png")); plt.close()
+            except Exception:
+                pass
             
         #Save best model without augmentation
         if (current > best_metric_no_aug) and not use_augment:
@@ -468,17 +505,12 @@ if __name__ == "__main__":
             save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_no_aug)
             model_eval.to(DEVICE).eval()
             print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_no_aug}")   
-        #Save every x epoch
-        if (epoch+1) % save_every == 0:
-            save_path = os.path.join(weight_folder, f"epoch_{epoch+1}.pt")
-            model_eval_cpu = model_eval.to("cpu").eval()
-            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, save_path)   
-            model_eval.to(DEVICE).eval()
+    
 
-        
-        model_eval_cpu = model_eval.to("cpu").eval()
-        save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, last_ckpt_path)
-        model_eval.to(DEVICE).eval()
+    
+    
+    
+    
         mAP.append(coco_stats["AP50"]*100)
         F1.append(summary["best_f1"]*100)
         Recall.append(summary["recall_at_best"]*100)
@@ -488,10 +520,11 @@ if __name__ == "__main__":
         Recall_fixed.append(summary["recall_at_fixed_conf"]*100)
         F1_fixed.append(summary["f1_at_fixed_conf"]*100)
         fixed_conf = summary["fixed_conf"]
+        best_idx = summary["best_idx"]
         # Losskurva (tyst om den misslyckas)
         val_thresh = best_conf[-1]
         try:
-            import matplotlib.pyplot as plt
+            
             #Loss
             plt.figure()
             plt.plot(train_losses, label="Train")
@@ -507,36 +540,24 @@ if __name__ == "__main__":
             plt.legend(); plt.grid(True, linestyle=":")
             plt.savefig(os.path.join(log_dir, "metrics_at_best_conf_over_epochs.png")); plt.close()
 
-            # b) Visa hur tröskeln driver över tid
-            plt.figure()
-            plt.plot(best_conf, label="best_conf")
-            plt.xlabel("Epoch"); plt.ylabel("Confidence"); plt.title("best_conf per epoch")
-            plt.ylim(0, 1); plt.legend(); plt.grid(True, linestyle=":")
-            plt.savefig(os.path.join(log_dir, "best_conf_over_epochs.png")); plt.close()
-           
-
-            plt.figure()
-            plt.plot(Precision_fixed, label=f"Precision@{fixed_conf:.2f}")
-            plt.plot(Recall_fixed,    label=f"Recall@{fixed_conf:.2f}")
-            plt.plot(F1_fixed,        label=f"F1@{fixed_conf:.2f}")
-            plt.xlabel("Epoch"); plt.ylabel("Metric (%)"); plt.title(f"Metrics @ fixed conf={fixed_conf:.2f}")
-            plt.legend(); plt.grid(True, linestyle=":")
-            plt.savefig(os.path.join(log_dir, f"metrics_at_conf_{fixed_conf:.2f}_over_epochs.png")); plt.close()
-            
-           #mAP
-            plt.figure()
-            plt.plot(mAP, label="mAP")
-            plt.xlabel("Epoch"); plt.ylabel("mAP (%)"); plt.legend(); plt.title("mAP (%)")
-            plt.savefig(os.path.join(log_dir, "mAP_curve.png")); plt.close()
+        
 
             
 
-         
+        
         except Exception:
             pass
-
+            #Save every x epoch
+        if (epoch+1) % save_every == 0:
+            save_path = os.path.join(weight_folder, f"epoch_{epoch+1}.pt")
+            model_eval_cpu = model_eval.to("cpu").eval()
+            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, save_path)   
+            model_eval.to(DEVICE).eval()
+        model_eval_cpu = model_eval.to("cpu").eval()
+        save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, last_ckpt_path)
+        model_eval.to(DEVICE).eval()        
         # En enda kort sammanfattningsrad per epoch
-        from math import isnan
+        
         tqdm.write(
             f"Epoch {epoch+1}/{epochs} | "
             f"train {avg_train:.4f} | val {avg_val:.4f} | "
