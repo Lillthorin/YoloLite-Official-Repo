@@ -78,16 +78,13 @@ def build_curves_from_coco(coco_images, coco_anns, coco_dets,
 
     if len(tps) == 0:
         # inga prediktioner: skriv tomma filer och returnera
-        pr_csv = out_dir / "pr_curve_ranked.csv"
-        with pr_csv.open("w", newline="", encoding="utf-8") as f:
-            csv.writer(f).writerow(["recall","precision"])
         return {
             "iou": float(iou),
             "best_f1": 0.0,
             "best_conf": 0.0,
             "precision_at_best": 0.0,
             "recall_at_best": 0.0,
-            "files": {"pr_curve_ranked_csv": str(pr_csv)}
+            
         }
 
     tps = np.array(tps); fps = np.array(fps)
@@ -107,7 +104,7 @@ def build_curves_from_coco(coco_images, coco_anns, coco_dets,
         key = (int(d["image_id"]), int(d["category_id"]))
         det_index.setdefault(key, []).append(d)
 
-    confs = np.linspace(0.0, 1.0, steps)
+    confs = np.linspace(0.0, 0.9, steps)
     P_curve, R_curve, F1_curve = [], [], []
 
     for thr in confs:
@@ -157,6 +154,11 @@ def build_curves_from_coco(coco_images, coco_anns, coco_dets,
         "precision_at_fixed_conf": P_fixed,
         "recall_at_fixed_conf": R_fixed,
         "f1_at_fixed_conf": F1_fixed,
+        "P_curve": P_curve,
+        "R_curve": R_curve,
+        "F1_curve": F1_curve,
+        "confs": confs,
+        "best_idx": best_idx
                 
     }
     
