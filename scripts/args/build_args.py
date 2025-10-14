@@ -184,13 +184,13 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--resume", type=str, default=None, help="Resume training from last checkpoint if available")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate if set")
     ap.add_argument("--save_every", type=int, default=25, help="Save every x epoch")
-    ap.add_argument("--save_by", type=str, default='AP50', help="Save best model by mAP50, viable setting [AP50, AP75, AP, AR, APS, APM, APL,P, R, F1]")  
+    ap.add_argument("--save_by", type=str, default='AP', help="Save best model by coco evaluation, viable setting [AP50, AP75, AP, AR, APS, APM, APL]")  
     
     return ap
 
 def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
     # CLI ska få sista ordet
-    ok_save_by = ["AP50", "AP75", "AP", "AR", "APS", "APM", "APL","P", "R", "F1"]
+    ok_save_by = ["AP50", "AP75", "AP", "AR", "APS", "APM", "APL"]
     if args.epochs is not None:
         config["training"]["epochs"] = int(args.epochs)
     if args.batch_size is not None:
