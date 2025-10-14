@@ -101,15 +101,15 @@ To test trained models inference use tools/infer.py:
     python export/export_onnx.py --weights runs/train/1/best_model_state.pt --img-size 640 --device cpu --simplify
 
 
-Test inference speed:
+##Test inference speed:
 
-Prints: 
-=== Inference timing (ms) ===
-pre_ms    mean 24.27 | std 0.00 | p50 24.27 | p90 24.27 | p95 24.27
-infer_ms  mean 58.78 | std 0.00 | p50 58.78 | p90 58.78 | p95 58.78
-post_ms   mean 1.17 | std 0.00 | p50 1.17 | p90 1.17 | p95 1.17
-total_ms  mean 84.23 | std 0.00 | p50 84.23 | p90 84.23 | p95 84.23
-Throughput ≈ 11.87 img/s
+    Prints: 
+    === Inference timing (ms) ===
+    pre_ms    mean 24.27 | std 0.00 | p50 24.27 | p90 24.27 | p95 24.27
+    infer_ms  mean 58.78 | std 0.00 | p50 58.78 | p90 58.78 | p95 58.78
+    post_ms   mean 1.17 | std 0.00 | p50 1.17 | p90 1.17 | p95 1.17
+    total_ms  mean 84.23 | std 0.00 | p50 84.23 | p90 84.23 | p95 84.23
+    Throughput ≈ 11.87 img/s
 
     --model", required=True, help="Path till decoded .onnx"
     --img", default=None
@@ -128,7 +128,9 @@ Throughput ≈ 11.87 img/s
     --inter, type=int, default=0, help="inter_op_num_threads (0=auto)"
 
 
+
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
