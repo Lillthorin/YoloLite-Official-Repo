@@ -101,7 +101,7 @@ To test trained models inference use tools/infer.py:
     python export/export_onnx.py --weights runs/train/1/best_model_state.pt --img-size 640 --device cpu --simplify
 
 
-##Test inference speed:
+## Test inference speed:
 
     Prints: 
     === Inference timing (ms) ===
@@ -130,6 +130,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
