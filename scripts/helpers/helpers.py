@@ -215,7 +215,7 @@ def _coco_eval_from_lists(coco_images, coco_anns, coco_dets, iouType="bbox", num
             "APS":  float(E.stats[3]),
             "APM":  float(E.stats[4]),
             "APL":  float(E.stats[5]),
-            "AR":   float(E.stats[6]),
+            "AR":   float(E.stats[8]),
             "ARS":  float(E.stats[9]),
             "ARM":  float(E.stats[10]),
             "ARL":  float(E.stats[11])
@@ -433,5 +433,6 @@ def save_val_debug_anchorfree(imgs, preds, epoch, out_dir,
             cv2.putText(img_np, f"{int(cid)}:{float(score):.2f}", (x1, max(0,y1-5)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
         cv2.imwrite(os.path.join(out_dir, f"last_b{b}.jpg"), img_np)
+
 
 
