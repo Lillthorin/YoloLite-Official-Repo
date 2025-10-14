@@ -216,6 +216,9 @@ def _coco_eval_from_lists(coco_images, coco_anns, coco_dets, iouType="bbox", num
             "APM":  float(E.stats[4]),
             "APL":  float(E.stats[5]),
             "AR":   float(E.stats[6]),
+            "ARS":  float(E.stats[9]),
+            "ARM":  float(E.stats[10]),
+            "ARL":  float(E.stats[11])
         }
     finally:
         try: os.remove(gt_path)
