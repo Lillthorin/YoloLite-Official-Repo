@@ -21,6 +21,8 @@ from scripts.helpers.helpers import yolo_collate, _coco_eval_from_lists,  set_se
 from scripts.args.build_args import build_argparser, load_configs, apply_overrides
 from scripts.data.plot_metrics import plot_metrics
 from scripts.data.p_r_f1 import build_curves_from_coco
+from scripts.helpers.evaluate import evaluate_model
+
 def save_checkpoint_state(model, metrics: dict, class_names, config: dict, out_path: str):
     cpu_state = {k: v.cpu() for k, v in model.state_dict().items()}
     meta = {
@@ -31,8 +33,7 @@ def save_checkpoint_state(model, metrics: dict, class_names, config: dict, out_p
         "img_size": int(config["training"].get("img_size", 640)),
         "arch": config["model"]["arch"],
         "backbone": config["model"]["backbone"],
-        "config": config,  # valfritt men praktiskt
-        # valfritt: "git_commit": "...", "version": "...", "date": time.ctime(), etc.
+        "config": config,  
     }
     torch.save({"state_dict": cpu_state, "meta": meta}, out_path)
 
@@ -241,12 +242,7 @@ if __name__ == "__main__":
 
     #Define save by;
     save_by = config["training"]["save_by"]
-    if save_by == 'P':
-        save_by = 'precision_at_best'
-    elif save_by == "R":
-        save_by = 'recall_at_best'
-    elif save_by == "F1":
-        save_by = 'best_f1'
+
     
     class_names = config["dataset"]["names"]
     weight_folder = os.path.join(log_dir, 'weights')
@@ -423,16 +419,8 @@ if __name__ == "__main__":
         coco_stats = _coco_eval_from_lists(
             coco_images, coco_anns, coco_dets, iouType="bbox", num_classes=NUM_CLASSES
         )
-
         elapsed = time.time() - start
-        summary = build_curves_from_coco(
-            coco_images=coco_images,
-            coco_anns=coco_anns,
-            coco_dets=coco_dets,
-            out_dir=Path(log_dir) / f"curves",
-            iou=0.50,
-            steps=201
-        )
+       
         # --------- Loggning till filer (ingen print-spam) ----------
         metrics_csv = os.path.join(log_dir, "metrics.csv")
         metrics_last_json = os.path.join(log_dir, "last_metrics.json")
@@ -442,14 +430,13 @@ if __name__ == "__main__":
         now_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
 
         csv_header = [
-            "epoch","AP","AP50","AP75","APS","APM","APL","AR", "F1", "precision","recall", "best_conf",
+            "epoch","AP","AP50","AP75","APS","APM","APL","AR",
             "train_loss","val_loss","lr_g0","lr_g1","lr_g2","elapsed_s","timestamp"
         ]
         csv_row = [
             epoch+1,
             coco_stats["AP"], coco_stats["AP50"], coco_stats["AP75"],
             coco_stats["APS"], coco_stats["APM"], coco_stats["APL"], coco_stats["AR"],
-            summary["best_f1"],summary["precision_at_best"],summary["recall_at_best"],summary["best_conf"],
             avg_train, avg_val,
             *(lrs + [None, None, None])[:3],
             elapsed, now_iso
@@ -464,8 +451,8 @@ if __name__ == "__main__":
             scheduler.step(avg_val)
 
         # The code snippet provided is written in Python and performs the following actions:
-        save_by_dict = coco_stats if save_by in coco_stats else summary
-        current = save_by_dict[metric_key]
+        
+        current = coco_stats[metric_key]
         if (current > best_metric) and use_augment:
             best_metric = current
             # Spara EN fil: state_dict + metadata. Undvik torch.save(model)
@@ -473,29 +460,7 @@ if __name__ == "__main__":
             save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_ckpt_path)
             model_eval.to(DEVICE).eval()
             print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_ckpt_path}")
-            try:
-                plt.figure()
-                plt.plot(summary["confs"], summary["P_curve"])
-                plt.xlabel("Confidence threshold"); plt.ylabel("Precision")
-                plt.title(f"Precision vs Confidence @ iou: 0.5")
-                plt.grid(True, linestyle=":"); plt.tight_layout()
-                plt.savefig(os.path.join(log_dir, "P_curve.png")); plt.close()
-
-                plt.figure()
-                plt.plot(summary["confs"], summary["R_curve"])
-                plt.xlabel("Confidence threshold"); plt.ylabel("Recall")
-                plt.title(f"Recall vs Confidence @ iou: 0.5")
-                plt.grid(True, linestyle=":"); plt.tight_layout()
-                plt.savefig(os.path.join(log_dir, "R_curve.png")); plt.close()
-
-                plt.figure()
-                plt.plot(summary["confs"], summary["F1_curve"])
-                plt.xlabel("Confidence threshold"); plt.ylabel("F1")
-                plt.title(f"F1 vs Confidence @ iou: 0.5")
-                plt.grid(True, linestyle=":"); plt.tight_layout()
-                plt.savefig(os.path.join(log_dir, "F1_curve.png")); plt.close()
-            except Exception:
-                pass
+           
             
         #Save best model without augmentation
         if (current > best_metric_no_aug) and not use_augment:
@@ -506,42 +471,15 @@ if __name__ == "__main__":
             model_eval.to(DEVICE).eval()
             print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_no_aug}")   
     
-
-    
-    
-    
-    
-        mAP.append(coco_stats["AP50"]*100)
-        F1.append(summary["best_f1"]*100)
-        Recall.append(summary["recall_at_best"]*100)
-        Precision.append(summary["precision_at_best"]*100)  
-        best_conf.append(float(summary["best_conf"]))
-        Precision_fixed.append(summary["precision_at_fixed_conf"]*100)
-        Recall_fixed.append(summary["recall_at_fixed_conf"]*100)
-        F1_fixed.append(summary["f1_at_fixed_conf"]*100)
-        fixed_conf = summary["fixed_conf"]
-        best_idx = summary["best_idx"]
         # Losskurva (tyst om den misslyckas)
-        val_thresh = best_conf[-1]
         try:
-            
+  
             #Loss
             plt.figure()
             plt.plot(train_losses, label="Train")
             plt.plot(val_losses, label="Val")
             plt.xlabel("Epoch"); plt.ylabel("Loss"); plt.legend(); plt.title("Loss Curve")
             plt.savefig(os.path.join(log_dir, "loss_curve.png")); plt.close()
-            # a) Precision/Recall/F1 över epoker (vid best_conf per epoch)
-            plt.figure()
-            plt.plot(Precision, label="Precision@best_conf")
-            plt.plot(Recall,    label="Recall@best_conf")
-            plt.plot(F1,        label="F1@best_conf")
-            plt.xlabel("Epoch"); plt.ylabel("Metric (%)"); plt.title(f"Metrics @ best_conf per epoch")
-            plt.legend(); plt.grid(True, linestyle=":")
-            plt.savefig(os.path.join(log_dir, "metrics_at_best_conf_over_epochs.png")); plt.close()
-
-        
-
             
 
         
@@ -570,5 +508,13 @@ if __name__ == "__main__":
     smooth=0.2,
     style="dark",   # <= detta gör allt i %
     )
+    # -------------------- EVAL --------------------
+    ckpt = torch.load(best_ckpt_path, map_location=DEVICE) 
+    missing, unexpected = model.load_state_dict(ckpt["state_dict"], strict=False)
+    model.eval()
+    evaluate_model(model=model, val_loader=val_loader, log_dir=log_dir, NUM_CLASSES=NUM_CLASSES, DEVICE=DEVICE, IMG_SIZE=IMG_SIZE, batch_size=batch_size)
+
+
+    
     
 
