@@ -94,9 +94,6 @@ def build_curves_from_coco(coco_images, coco_anns, coco_dets,
     precisions_rank = cum_tp / np.maximum(1, cum_tp + cum_fp)
 
 
-
-    
-
     # ---------------- P/R/F1 vs confidence (0..1 svep) ----------------
     # För snabb åtkomst: indexera pred per (img, cat)
     det_index = {}
@@ -104,7 +101,7 @@ def build_curves_from_coco(coco_images, coco_anns, coco_dets,
         key = (int(d["image_id"]), int(d["category_id"]))
         det_index.setdefault(key, []).append(d)
 
-    confs = np.linspace(0.0, 0.9, steps)
+    confs = np.linspace(0.0, 1.0, steps)
     P_curve, R_curve, F1_curve = [], [], []
 
     for thr in confs:
