@@ -23,6 +23,69 @@ Number = Union[int, float]
 # vilka labels ska tolkas som procent (0..1 -> 0..100 %)
 _PERCENT_LIKE = {"map", "ap", "ap50", "ap75", "aps", "apm", "apl",
                  "ar", "recall", "precision", "f1", "mAP@50", "mAP@50-95"}
+# --- lägg detta någonstans ovanför evaluate_model (eller inuti, högst upp) ---
+import time
+from copy import deepcopy
+
+@torch.no_grad()
+def _bench_forward_ms_per_img(model: torch.nn.Module,
+                              loader,
+                              device: str,
+                              use_amp: bool,
+                              bench_batches: int = 5) -> float:
+    """
+    Mäter ren forward-tid (modell(imgs)) i ms per bild över 'bench_batches' batchar.
+    Ingen decode/NMS/COCO-bygge – endast inference.
+    """
+    model.eval()
+    it = iter(loader)
+    # Warmup 2 batchar (utan timing) för stabilare cache/graph
+    for _ in range(2):
+        try:
+            imgs, _ = next(it)
+        except StopIteration:
+            it = iter(loader); imgs, _ = next(it)
+        imgs = torch.stack(imgs).to(device, non_blocking=True)
+        with torch.amp.autocast(device_type='cuda', enabled=(use_amp and device=='cuda')):
+            _ = model(imgs)
+
+    # Mät
+    times = []
+    counted_imgs = 0
+    for _ in range(bench_batches):
+        try:
+            imgs, _ = next(it)
+        except StopIteration:
+            it = iter(loader); imgs, _ = next(it)
+
+        imgs = torch.stack(imgs).to(device, non_blocking=True)
+        if device == 'cuda':
+            torch.cuda.synchronize()
+
+        t0 = time.perf_counter()
+        with torch.amp.autocast(device_type='cuda', enabled=(use_amp and device=='cuda')):
+            _ = model(imgs)
+        if device == 'cuda':
+            torch.cuda.synchronize()
+        t1 = time.perf_counter()
+
+        dt_ms = (t1 - t0) * 1000.0
+        B = imgs.size(0)
+        times.append(dt_ms)
+        counted_imgs += B
+
+    if counted_imgs == 0:
+        return float('nan')
+    # ms per bild = (sum ms) / antal bilder
+    return (sum(times) / max(1, counted_imgs))
+
+
+def _format_ms(ms: float) -> tuple:
+    """Returnerar (ms_per_img, fps) med tre decimalsiffror/FPS till 2."""
+    if not (ms == ms) or ms <= 0:
+        return (float('nan'), float('nan'))
+    fps = 1000.0 / ms
+    return (round(ms, 3), round(fps, 2))
 
 def _load_font(size: int):
     for name in ("DejaVuSans.ttf", "arial.ttf"):
@@ -199,6 +262,33 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         steps=201
     )
 
+    # -------------------- BENCHMARK: GPU + CPU --------------------
+    bench_batches = 10  # justera vid behov (3–10 brukar räcka)
+
+    # a) GPU (om finns)
+    gpu_ms_per_img = float('nan'); gpu_fps = float('nan')
+    if torch.cuda.is_available():
+        try:
+            gpu_ms = _bench_forward_ms_per_img(
+                model=model_eval, loader=val_loader,
+                device='cuda', use_amp=True, bench_batches=bench_batches
+            )
+            gpu_ms_per_img, gpu_fps = _format_ms(gpu_ms)
+        except Exception as e:
+            print(f"[bench][GPU] failed: {e}")
+
+    # b) CPU – kopiera modell till CPU (påverkar inte originalet)
+    cpu_ms_per_img = float('nan'); cpu_fps = float('nan')
+    try:
+        model_cpu = deepcopy(model_eval).to('cpu').eval()
+        cpu_ms = _bench_forward_ms_per_img(
+            model=model_cpu, loader=val_loader,
+            device='cpu', use_amp=False, bench_batches=bench_batches
+        )
+        cpu_ms_per_img, cpu_fps = _format_ms(cpu_ms)
+        del model_cpu
+    except Exception as e:
+        print(f"[bench][CPU] failed: {e}")
 
     plt.figure()
     plt.plot(summary["confs"], summary["P_curve"])
@@ -234,28 +324,59 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
     ars       = coco_stats["ARS"]
     arm       = coco_stats["ARM"]
     arl       = coco_stats["ARL"]
-    
+    gpu_item = None
+    if torch.cuda.is_available():
+        gpu_item = (
+            "Infer GPU (ms/img)",
+            gpu_ms_per_img,  # float eller nan
+            f"≈ {gpu_fps} FPS over {bench_batches} batches"
+        )
+
+    cpu_item = (
+        "Infer CPU (ms/img)",
+        cpu_ms_per_img,      # float eller nan
+        f"≈ {cpu_fps} FPS over {bench_batches} batches"
+    )
+       # ---- bygg lista ----
+    metrics_list = [
+        ("mAP@50", mAP50, "mean Average Precision@50"),
+        ("Precision", precision, "Precision at best F1"),
+        ("Recall", recall, "Recall at best F1"),
+        ("F1-score", f1, "Best F1 score"),
+        ("mAP@50-95", ap, "mean Average Precision@50-95"),
+        ("AR@0.50:0.95", ar, "Average Recall"),
+        ("APS@0.50:0.95", aps, "Average Precision Small-objects"),
+        ("APM@0.50:0.95", apm, "Average Precision Medium-objects"),
+        ("APL@0.50:0.95", apl, "Average Precision Large-objects"),
+        ("ARS@0.50:0.95", ars, "Average Recall Small-objects"),
+        ("ARM@0.50:0.95", arm, "Average Recall Medium-objects"),
+        ("ARL@0.50:0.95", arl, "Average Recall Large-objects"),
+        ("Best conf", best_conf, "Threshold for highest F1"),
+        gpu_item,
+        cpu_item,
+    ]
+     # ---- sanering: ta bort None + fel form, och tvinga value->float ----
+    def _normalize_metrics(items):
+        out = []
+        for m in items:
+            if m is None or not isinstance(m, (list, tuple)) or len(m) != 3:
+                continue
+            label, val, hint = m
+            try:
+                val = float(val)
+            except Exception:
+                val = float('nan')
+            out.append((str(label), val, "" if hint is None else str(hint)))
+        return out
+
+    metrics_list = _normalize_metrics(metrics_list)
 
     img = make_summary_image(
-        metrics=[
-            ("mAP@50", mAP50, "mean Average Precision@50"),
-            ("Precision", precision, "Precision at best F1"),
-            ("Recall", recall, "Recall at best F1"),
-            ("F1-score", f1, "Best F1 score"),
-            ("mAP@50-95", ap, "mean Average Precision@50-95"),
-            ("AR@0.50:0.95", ar, "Average Recall"),
-            ("APS@0.50:0.95", aps, "Average Precision Small-objects"),
-            ("APM@0.50:0.95", apm, "Average Precision Medium-objects"),
-            ("APL@0.50:0.95", apl, "Average Precision Large-objects"),
-            ("ARS@0.50:0.95", ars, "Average Recall Small-objects"),
-            ("ARM@0.50:0.95", arm, "Average Recall Medium-objects"),
-            ("ARL@0.50:0.95", arl, "Average Recall Large-objects"),
-            ("Best conf", best_conf, "Threshold for highest F1")
-        ],
+        metrics=metrics_list,
         title="METRICS",
         subtitle=f"• IoU 0.50 • Img-size {IMG_SIZE}",
         cards_per_row=3,
-        save_path=f"{log_dir}\summary.png",
+        save_path=f"{log_dir}\\summary.png",
     )
         
         
