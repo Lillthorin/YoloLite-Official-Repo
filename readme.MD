@@ -85,8 +85,7 @@ To test trained models inference use tools/infer.py:
 
 ## Export to onnx 
 
-   
-   --weights", required=True, help="Path to checkpoint (.pt/.pth)
+    --weights", required=True, help="Path to checkpoint (.pt/.pth)
     --out", Default: runs/export/<n>/model.onnx|_decoded.onnx
     --img-size", type=int, default=640
     --device", default="cpu", help="'cpu' '0'
@@ -130,6 +129,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
