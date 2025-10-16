@@ -16,7 +16,7 @@ The benchmark was done using standard training.
 
 Configs for each model can be found under configs/model. The edge_n model is still beeing processed. 
 
-| Dataset              | YOLOv5 | YOLOv7 | edge_l | edgle_m | edge_s | edge_n |
+| Dataset              | YOLOv5 | YOLOv7 | edge_l | edge_m | edge_s | edge_n |
 |----------------------|------:|------:|------:|-------:|------:|------:|
 | chess pieces         | 0.977 | 0.830 | 0.914  | 0.964  | 0.964 |       |
 | Circuit viltages     | 0.797 | 0.257 | 0.749 | 0.687  | 0.757 |       |
@@ -67,5 +67,6 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
