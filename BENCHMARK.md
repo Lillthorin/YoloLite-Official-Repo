@@ -46,9 +46,9 @@ cuda
 
 
 | Device | edge_l | edgle_m | edge_s | edge_n |
-|------:|------:|------:|-------:|------:|------:|
-| CPU  | 67.0  | 45.57 | 40.18 | 23.88 |
-| GPU  | 24.95 | 23.05  | 20.83 | 20.2 | 
+|------: |------: |------:  |-------:|------:|
+| CPU    | 67.0   | 45.57   | 40.18  | 23.88 |
+| GPU    | 24.95  | 23.05   | 20.83  | 20.2  | 
 
 
 # Training logs
@@ -67,4 +67,5 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
