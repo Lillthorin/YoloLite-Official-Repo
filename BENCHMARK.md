@@ -18,7 +18,7 @@ Configs for each model can be found under configs/model. The edge_n model is sti
 
 | Dataset              | YOLOv5 | YOLOv7 | edge_l | edgle_m | edge_s | edge_n |
 |----------------------|------:|------:|------:|-------:|------:|------:|
-| chess pieces         | 0.977 | 0.830 | 91.4  | 0.964  | 0.964 |       |
+| chess pieces         | 0.977 | 0.830 | 0.914  | 0.964  | 0.964 |       |
 | Circuit viltages     | 0.797 | 0.257 | 0.749 | 0.687  | 0.757 |       |
 | sedimentary features | 0.327 | 0.244 | 0.181 | 0.199  | 0.213 |       |
 | soccer players       | 0.666 | 0.399 | 0.756 | 0.758  | 0.734 |       |
@@ -64,5 +64,6 @@ merged_config.yaml is created as the complete configuration for the training, tr
 
 During validation steps last_b0.jpg and last_b1.jpg will be created these are two random images from the validation loop with the models predictions. 
 You can check these to see the models progress. 
+
 
 More information about plots are comming. 
