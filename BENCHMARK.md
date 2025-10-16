@@ -42,7 +42,9 @@ cuda
 
     python export/infer_onnx.py --model runs/export/medium/model_decoded.onnx --img "testimg.jpg" --providers "cuda"
 
-
+Hardware: 
+CPU AMD Ryzen 5 5500
+GPU NVIDIA GeForce RTX 4060
 
 
 | Device | edge_l | edgle_m | edge_s | edge_n |
@@ -67,6 +69,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
