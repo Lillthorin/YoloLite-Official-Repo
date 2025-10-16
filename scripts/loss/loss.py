@@ -120,11 +120,11 @@ def bbox_iou(box1: torch.Tensor, box2: torch.Tensor, eps: float = 1e-7) -> torch
     return (inter / union).clamp(min=0.0, max=1.0)
 
 
-# --------------------------- YOLOv6-stil AF-loss ---------------------------
+# ---------------------------stil AF-loss ---------------------------
 
 class LossAF(nn.Module):
     """
-    Anchor-free, YOLOv6-lik matchning:
+    Anchor-free,k matchning:
       - Level-gating (ATSS-lik) baserat på GT-storlek vs nivåns stride.
       - Center-prior (radie ~ 2.5*stride) + liten GT-storleksandel.
       - Cost = IoU-driven SimOTA-hybrid + (liten) size/AR-prior.
@@ -470,3 +470,4 @@ class LossAF(nn.Module):
             "cls": float(loss_cls),
             "pos": total_pos / max(B, 1),
         }
+
