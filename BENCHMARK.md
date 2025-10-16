@@ -12,7 +12,7 @@ The mAP numbers for YOLOv5 and YOLOv7 models can be found in their paper
 
 The benchmark was done using standard training. 
 
-    python tools/train.py --batch_size 4 --epochs 200 
+    python tools/train.py --model "configs/models/edge_s.yaml" --batch_size 4 --epochs 200 
 
 Configs for each model can be found under configs/model. The edge_n model is still beeing processed. 
 
@@ -69,6 +69,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
