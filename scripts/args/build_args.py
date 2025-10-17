@@ -251,8 +251,8 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--device", type=str, default="cuda")   # t.ex. "0", "cpu"
     ap.add_argument("--img_size", type=int, default=640)
     ap.add_argument("--workers", type=int, default=4)
-    ap.add_argument("--augment", type=bool, default=True)
-    ap.add_argument("--use_p6", type=bool, default=False)
+    ap.add_argument("--augment", default=True, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--use_p6",  default=False, action=argparse.BooleanOptionalAction)
     ap.add_argument("--resume", type=str, default=None, help="Resume training from last checkpoint if available")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate if set")
     ap.add_argument("--save_every", type=int, default=25, help="Save every x epoch")
@@ -274,9 +274,9 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
     if args.device is not None:
         config.setdefault("training", {})["device"] = args.device
     if args.use_p6 is not None:
-        config["training"]["use_p6"] = bool(args.use_p6)
+        config["training"]["use_p6"] = args.use_p6
     if args.augment is not None:
-        config["training"]["augment"] = bool(args.augment)
+        config["training"]["augment"] = args.augment  # redan bool
     if args.resume is not None:
         config["training"]["resume"] = str(args.resume)
     if args.lr is not None:
@@ -290,3 +290,4 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
             print("Invalid token for save_by. Valid tokens: [AP50, AP75, AP, AR, APS, APM, APL]")
             raise ValueError
     return config
+
