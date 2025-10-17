@@ -93,7 +93,7 @@ if __name__ == "__main__":
         config["dataset"]["train_labels"],
         img_size=IMG_SIZE,
         is_train=True if use_augment else False,
-        transforms=get_strong_transform(IMG_SIZE) if use_augment else get_val_transform(IMG_SIZE)
+        transforms=get_base_transform(IMG_SIZE) if use_augment else get_val_transform(IMG_SIZE)
     )
     val_ds = YoloDataset(
         config["dataset"]["val_images"],
@@ -517,5 +517,6 @@ if __name__ == "__main__":
 
     
     
+
 
 
