@@ -14,15 +14,15 @@ The benchmark was done using standard training.
 
     python tools/train.py --model "configs/models/edge_s.yaml" --batch_size 4 --epochs 200 
 
-Configs for each model can be found under configs/model. The edge_n model is still beeing processed. 
+Configs for each model can be found under configs/model.  
 
 | Dataset              | YOLOv5 | YOLOv7 | edge_l | edge_m | edge_s | edge_n |
 |----------------------|------:|------:|------:|-------:|------:|------:|
-| chess pieces         | 0.977 | 0.830 | 0.914  | 0.964  | 0.964 |       |
-| circuit voltages     | 0.797 | 0.257 | 0.749 | 0.687  | 0.757 |       |
-| sedimentary features | 0.327 | 0.244 | 0.181 | 0.199  | 0.213 |       |
-| soccer players       | 0.666 | 0.399 | 0.756 | 0.758  | 0.734 |       |
-| solar panels         | 0.413 | 0.261 | 0.317 | 0.313  | 0.310 |       |
+| chess pieces         | 0.977 | 0.830 | 0.914 | 0.964 | 0.964 | 0.681 |
+| circuit voltages     | 0.797 | 0.257 | 0.749 | 0.687  | 0.757 | 0.621 |
+| sedimentary features | 0.327 | 0.244 | 0.181 | 0.199  | 0.213 | 0.154 |
+| soccer players       | 0.666 | 0.399 | 0.756 | 0.758  | 0.734 | 0.714 |
+| solar panels         | 0.413 | 0.261 | 0.317 | 0.313  | 0.310 | 0.270 |
 
 NOTE!
 
