@@ -253,7 +253,7 @@ if __name__ == "__main__":
     metric_key = save_by  # eller "AP" om du vill optimera på COCO AP
     best_metric = -1.0
     best_metric_no_aug = -1.0
-    val_thresh = 0.5
+    val_thresh = 0.3
     for epoch in range(epochs):
         if epoch == (int(epochs*0.4)) and use_augment:
             train_ds.transforms = get_base_transform(IMG_SIZE)
@@ -517,4 +517,5 @@ if __name__ == "__main__":
 
     
     
+
 
