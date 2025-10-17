@@ -75,7 +75,60 @@ def _deep_merge(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
             a[k] = v
     return a
 
+def _abs_from_yaml_dir(raw: str, data_yaml: str) -> str:
+    if not raw:
+        return ""
+    yaml_dir = Path(data_yaml).expanduser().resolve().parent
+    P = Path(raw).expanduser()
+    return str(P.resolve() if P.is_absolute() else (yaml_dir / P).resolve())
+
+def _fallback_split_dir(split: str, data_yaml: str, kind: str) -> str | None:
+    """
+    kind: 'images' eller 'labels'
+    Prova yaml_dir/<split>/<kind> (val provar även valid/<kind>).
+    Returnera absolut str om finns, annars None.
+    """
+    base = Path(data_yaml).expanduser().resolve().parent
+    candidates = []
+    if split == "val":
+        candidates += [base / "val" / kind, base / "valid" / kind]
+    else:
+        candidates += [base / split / kind]
+    for c in candidates:
+        if c.exists():
+            return str(c.resolve())
+    return None
+
+def _ensure_or_fallback(img_path: str, split: str, data_yaml: str, tag: str) -> str:
+    """
+    Om img_path finns -> returnera.
+    Om inte -> prova fallback till yaml_dir/<split>/images (plus valid/images för val).
+    Om fallback finns -> returnera den, annars behåll original (låter _ensure_dir_exists kasta).
+    """
+    if img_path and Path(img_path).exists():
+        return img_path
+    fb = _fallback_split_dir(split, data_yaml, "images")
+    return fb if fb else img_path
+
+def _labels_or_fallback(lbl_path: str, img_path: str, split: str, data_yaml: str) -> str:
+    """
+    Om labels anges och finns -> returnera.
+    Annars prova fallback: yaml_dir/<split>/labels.
+    Finns inte det heller -> inferera från img_path (.../images -> .../labels).
+    """
+    if lbl_path and Path(lbl_path).exists():
+        return lbl_path
+    fb = _fallback_split_dir(split, data_yaml, "labels")
+    if fb:
+        return fb
+    # inferera från images
+    if img_path:
+        p = Path(img_path)
+        return str((p.parent / "labels").resolve())
+    return ""
+
 def load_configs(model_yaml: str, train_yaml: str, data_yaml: str) -> Dict[str, Any]:
+    # ... (din befintliga setup) ...
     model_yaml = _norm(model_yaml) if model_yaml else None
     train_yaml = _norm(train_yaml) if train_yaml else None
     data_yaml  = _norm(data_yaml)  if data_yaml else None
@@ -84,47 +137,66 @@ def load_configs(model_yaml: str, train_yaml: str, data_yaml: str) -> Dict[str, 
     train_cfg = _read_yaml(train_yaml) if train_yaml else {}
     data_cfg  = _read_yaml(data_yaml)  if data_yaml  else {}
 
-    # --- Bygg intern "dataset"-sektion från data.yaml ---
-    data_train_images = _norm(data_cfg.get("train", ""))
-    data_val_images   = _norm(data_cfg.get("val", ""))
-    data_test_images  = _norm(data_cfg.get("test", ""))
-    # Härled labels-mappar:
-    train_labels = _infer_labels_dir(data_train_images) if data_train_images else ""
-    val_labels   = _infer_labels_dir(data_val_images)   if data_val_images   else ""
-    test_labels  = _infer_labels_dir(data_test_images)  if data_test_images  else ""
+    # 1) Först: bygg som vanligt relativt yaml_dir (absolut om absoluta)
+    train_img = _abs_from_yaml_dir(data_cfg.get("train",""), data_yaml)
+    val_img   = _abs_from_yaml_dir(data_cfg.get("val",""),   data_yaml)
+    test_img  = _abs_from_yaml_dir(data_cfg.get("test",""),  data_yaml)
 
-    # Validera att bilder/labels finns (om satta)
-    for tag, p in [("train_images", data_train_images),
-                   ("val_images", data_val_images),
-                   ("test_images", data_test_images)]:
+    # 2) Om de inte finns: fallback till yaml_dir/<split>/images (+ valid/images)
+    train_img = _ensure_or_fallback(train_img, "train", data_yaml, "train_images")
+    val_img   = _ensure_or_fallback(val_img,   "val",   data_yaml, "val_images")
+    test_img  = _ensure_or_fallback(test_img,  "test",  data_yaml, "test_images")
+
+    # 3) Labels (om YAML hade labels, resolva dem – annars tom str)
+    labels_cfg = data_cfg.get("labels") if isinstance(data_cfg.get("labels"), dict) else {}
+    raw_train_lbl = labels_cfg.get("train","") if labels_cfg else ""
+    raw_val_lbl   = labels_cfg.get("val","")   if labels_cfg else ""
+    raw_test_lbl  = labels_cfg.get("test","")  if labels_cfg else ""
+
+    train_lbl = _abs_from_yaml_dir(raw_train_lbl, data_yaml) if raw_train_lbl else ""
+    val_lbl   = _abs_from_yaml_dir(raw_val_lbl,   data_yaml) if raw_val_lbl   else ""
+    test_lbl  = _abs_from_yaml_dir(raw_test_lbl,  data_yaml) if raw_test_lbl  else ""
+
+    # 4) Labels fallback: yaml_dir/<split>/labels eller inferera från images
+    train_lbl = _labels_or_fallback(train_lbl, train_img, "train", data_yaml)
+    val_lbl   = _labels_or_fallback(val_lbl,   val_img,   "val",   data_yaml)
+    test_lbl  = _labels_or_fallback(test_lbl,  test_img,  "test",  data_yaml)
+
+    # 5) Existenskontroll: train/val hårt, test valfritt
+    for tag, p in [("train_images", train_img),
+                   ("val_images",   val_img)]:
         if p:
             _ensure_dir_exists(p, tag)
 
-    for tag, p in [("train_labels", train_labels),
-                   ("val_labels", val_labels),
-                   ("test_labels", test_labels)]:
+    if test_img:
+        _ensure_dir_exists(test_img, "test_images")
+
+    for tag, p in [("train_labels", train_lbl),
+                   ("val_labels",   val_lbl)]:
         if p:
             _ensure_dir_exists(p, tag)
 
+    if test_lbl:
+        _ensure_dir_exists(test_lbl, "test_labels")
+
+    # 6) Skriv in i config som tidigare
+    dataset_block = {
+        "dataset": {
+            "train_images": train_img,
+            "val_images":   val_img,
+            "train_labels": train_lbl,
+            "val_labels":   val_lbl,
+            **({"test_images": test_img} if test_img else {}),
+            **({"test_labels": test_lbl} if test_lbl else {}),
+            "names": list(data_cfg.get("names", [])) or [str(i) for i in range(int(data_cfg.get("nc", 0)))],
+        }
+    }
     names = data_cfg.get("names")
     if names is not None and not isinstance(names, (list, tuple)):
         raise ValueError("data.yaml 'names' must be a list of class names.")
     nc = data_cfg.get("nc", len(names) if names else None)
     if nc is None:
         raise ValueError("Unable to infer 'nc'. Please set 'nc' or provide 'names' in data.yaml.")
-
-    dataset_block = {
-        "dataset": {
-            # Håller kvar tidigare fält (om din kod förväntar dem):
-            "train_images": data_train_images,
-            "val_images": data_val_images,
-            "test_images": data_test_images,
-            "train_labels": train_labels,
-            "val_labels": val_labels,
-            "test_labels": test_labels,
-            "names": list(names) if names else [str(i) for i in range(nc)],
-        }
-    }
 
     # --- Sätt num_classes i model om ej explicit ---
     model_block = model_cfg.get("model", {})
@@ -218,4 +290,3 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
             print("Invalid token for save_by. Valid tokens: [AP50, AP75, AP, AR, APS, APM, APL]")
             raise ValueError
     return config
-
