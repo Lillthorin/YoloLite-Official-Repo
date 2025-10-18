@@ -33,7 +33,7 @@ training:
   freeze_backbone_epochs: 5
   grad_clip: 1.0
   head_lr_mult: 1.0
-  lr: 1e-4
+  lr: 1e-3
   neck_lr_mult: 1.0
   num_workers: 8
   optimizer: adamw
@@ -50,3 +50,4 @@ training:
   save_by: 
   pretrained: true
   
+
