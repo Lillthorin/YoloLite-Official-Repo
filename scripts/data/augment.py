@@ -61,10 +61,10 @@ def get_base_transform(img_size=416):
             A.HorizontalFlip(p=0.5),
 
             make_affine(
-                rotate=(-8, 8),
-                shear=(-4, 4),
-                scale=(0.95, 1.05),
-                translate_percent=(0.01, 0.04),
+                rotate=(-20, 20),
+                shear=(-10, 10),
+                scale=(0.85, 1.15),
+                translate_percent=(0.05, 0.1),
                 p=0.20,
             ),
 
@@ -72,6 +72,8 @@ def get_base_transform(img_size=416):
                 A.RandomBrightnessContrast(brightness_limit=0.20, contrast_limit=0.20),
                 A.ColorJitter(brightness=0.20, contrast=0.20, saturation=0.15, hue=0.05),
                 A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=15, val_shift_limit=15),
+                A.RGBShift(),
+                A.ChannelShuffle()
             ], p=0.40),
 
             A.OneOf([
