@@ -280,8 +280,8 @@ if __name__ == "__main__":
     best_metric_no_aug = -1.0
     val_thresh = 0.3
     for epoch in range(epochs):
-        if epoch == (int(epochs*0.4)) and use_augment:
-            train_ds.transforms = get_base_transform(IMG_SIZE)
+        if epoch == (int(epochs*0.7)) and use_augment:
+            train_ds.is_train = False
         if epoch > (int(epochs*0.9)):
             train_ds.transforms = get_val_transform(IMG_SIZE)
             use_augment = False
@@ -542,6 +542,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
