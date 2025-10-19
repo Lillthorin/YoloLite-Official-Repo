@@ -376,8 +376,9 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         title="METRICS",
         subtitle=f"• IoU 0.50 • Img-size {IMG_SIZE}",
         cards_per_row=3,
-        save_path=f"{log_dir}\\summary.png",
+        save_path=f"{log_dir}/summary.png",
     )
         
         
    
+
