@@ -5,4 +5,5 @@ model:
   depth_multiple: 0.90
   width_multiple: 0.75
   fpn_channels: 256
-  head_depth: 1
+  head_depth: 2
+
