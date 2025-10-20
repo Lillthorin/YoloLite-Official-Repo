@@ -2,7 +2,7 @@ logging:
   log_dir: runs/train
 
 loss:
-  lambda_box: 3.0
+  lambda_box: 5.0
   lambda_obj: 1.0
   lambda_cls: 0.5
   focal_loss: false           
@@ -50,4 +50,5 @@ training:
   save_by: 
   pretrained: true
   
+
 
