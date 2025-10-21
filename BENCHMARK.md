@@ -49,8 +49,8 @@ GPU NVIDIA GeForce RTX 4060
 
 | Device | edge_l | edgle_m | edge_s | edge_n |
 |------: |------: |------:  |-------:|------:|
-| CPU    | 67.0   | 45.57   | 40.18  | 23.88 |
-| GPU    | 24.95  | 23.05   | 20.83  | 20.2  | 
+| CPU    | 67.0ms  | 45.57ms    | 40.18ms   | 23.88ms  |
+| GPU    | 24.95ms   | 23.05ms    | 20.83ms   | 20.2ms   | 
 
 
 # Training logs
@@ -69,6 +69,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
