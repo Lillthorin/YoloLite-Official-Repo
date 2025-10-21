@@ -40,6 +40,7 @@ Construct yaml as follow:
     --resume, type=str, default=None, help="Resume training from last checkpoint if available"
     --lr, type=float, default=None, help="Override learning rate if set"
     --save_every", type=int, default=25, help="Save every x epoch"
+    --save_by, type=str, default='AP', help="Save best model by coco evaluation, viable settings [AP50, AP75, AP, AR, APS, APM, APL]"
 
 pip install -r requirements.txt
 
@@ -129,6 +130,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
