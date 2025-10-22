@@ -534,7 +534,11 @@ if __name__ == "__main__":
     style="dark",   # <= detta gör allt i %
     )
     # -------------------- EVAL --------------------
-    ckpt = torch.load(best_ckpt_path, map_location=DEVICE) 
+    #tries to load best ckpt path , fallback: best_no_aug
+    try:
+        ckpt = torch.load(best_ckpt_path, map_location=DEVICE) 
+    except:
+        ckpt = torch.load(best_no_aug, map_location=DEVICE) 
     missing, unexpected = model.load_state_dict(ckpt["state_dict"], strict=False)
     model.eval()
     evaluate_model(model=model, val_loader=val_loader, log_dir=log_dir, NUM_CLASSES=NUM_CLASSES, DEVICE=DEVICE, IMG_SIZE=IMG_SIZE, batch_size=batch_size)
@@ -542,6 +546,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
