@@ -456,12 +456,19 @@ class LossAF(nn.Module):
                 loss_obj = loss_obj + self.lambda_obj * level_obj * balance[li]
 
                 # Cls loss (endast positives) – targets i logits' dtype
-                logits_pos = cls_logits[b][pos_idx]
-                t_onehot = self._smooth_onehot(assigned_cls, C, self.cls_smoothing).to(logits_pos.dtype)
-                cls_l = self.bce(logits_pos, t_onehot)
-                if self.focal:
-                    cls_l *= self._focal_weight(logits_pos, t_onehot)
-                loss_cls = loss_cls + self.lambda_cls * cls_l.mean()
+                # Cls loss (endast positives) – CE behöver INTE one-hot
+                logits_pos = cls_logits[b][pos_idx]            # [P, C], float
+                targets_pos = assigned_cls                     # [P], long
+                cls_l = F.cross_entropy(
+                    logits_pos.float(),
+                    targets_pos.long(),
+                    reduction="mean",
+                    label_smoothing=self.cls_smoothing if self.cls_smoothing > 0 else 0.0,
+                )
+
+                loss_cls = loss_cls + self.lambda_cls * cls_l.to(loss_cls.dtype)
+                
+                
 
         total = loss_box + loss_obj + loss_cls
         return total, {
