@@ -2,23 +2,25 @@ logging:
   log_dir: runs/train
 
 loss:
+
   lambda_box: 5.0
-  lambda_obj: 1.0
-  lambda_cls: 0.5
+  lambda_obj: 0.7        
+  lambda_cls: 2.0        
+  cls_smoothing: 0.0     
+  topk_limit: 40          
+  center_radius_cells: 2.5
+  size_prior_w: 0.0       
+  ar_prior_w: 0.0        
+
   focal_loss: false           
   center_radius: 2.5
   assign_cls_weight: 0.5
-  center_radius_cells:  2.0
-  topk_limit:  10
   focal: False
   gamma:  2
   alpha:  0.25
-  cls_smoothing:  0.05
   area_cells_min:  4
   area_cells_max: 256
   area_tol:  1.25
-  size_prior_w: 0.2
-  ar_prior_w:  0.1
   iou_cost_w:  3
   center_cost_w: 0.5
 
@@ -50,4 +52,5 @@ training:
   save_by: 
   pretrained: true
   
+
 
