@@ -33,7 +33,7 @@ def _parse_yolo_line(line):
             h  = (ymax - ymin)
             # skydda mot degenererade polygoner
             eps = 1e-8
-            return int(line[0]), float(cx), float(cy), float(max(w, eps)), float(max(h, eps))
+            return int(parts[0]), float(cx), float(cy), float(max(w, eps)), float(max(h, eps))
         except:
             return None
     cls, xc, yc, bw, bh = map(float, parts[:5])  # ignorera ev. conf/extra
@@ -250,4 +250,5 @@ class YoloDataset(Dataset):
 
         target = {"boxes": boxes, "labels": labels, "image_id": torch.tensor([idx])}
         return img, target
+
 
