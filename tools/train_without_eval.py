@@ -281,7 +281,7 @@ if __name__ == "__main__":
     val_thresh = 0.3
     coco_stats = {}
     for epoch in range(epochs):
-        if epoch == (int(epochs*0.7)) and use_augment:
+        if epoch == (int(epochs*0.5)) and use_augment:
             train_ds.is_train = False
         if epoch > (int(epochs*0.9)):
             train_ds.transforms = get_val_transform(IMG_SIZE)
@@ -366,6 +366,7 @@ if __name__ == "__main__":
     
     
     
+
 
 
 
