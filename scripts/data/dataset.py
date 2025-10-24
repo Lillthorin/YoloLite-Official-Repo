@@ -21,6 +21,21 @@ def _parse_yolo_line(line):
     parts = line.strip().split()
     if len(parts) < 5:  # tom eller korrupt rad
         return None
+    #Added support to handle segmented yolov8 datasets! 
+    if len(parts) > 5:
+        try:
+            pts01 = np.asarray(list(map(float, parts[1:])), dtype=np.float32).reshape(-1, 2)
+            xmin, ymin = pts01.min(axis=0)
+            xmax, ymax = pts01.max(axis=0)
+            cx = (xmin + xmax) * 0.5
+            cy = (ymin + ymax) * 0.5
+            w  = (xmax - xmin)
+            h  = (ymax - ymin)
+            # skydda mot degenererade polygoner
+            eps = 1e-8
+            return int(line[0]), float(cx), float(cy), float(max(w, eps)), float(max(h, eps))
+        except:
+            return None
     cls, xc, yc, bw, bh = map(float, parts[:5])  # ignorera ev. conf/extra
     return int(cls), xc, yc, bw, bh
 
@@ -235,3 +250,4 @@ class YoloDataset(Dataset):
 
         target = {"boxes": boxes, "labels": labels, "image_id": torch.tensor([idx])}
         return img, target
+
