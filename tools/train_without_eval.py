@@ -351,9 +351,9 @@ if __name__ == "__main__":
         v_running = 0.0
         vb = vo = vc = 0.0
 
-        
+        save_path = os.path.join(weight_folder, f"epoch_{epoch+1}.pt")
         model_eval_cpu = model_eval.to("cpu").eval()
-        save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, last_ckpt_path)
+        save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, save_path)
         model_eval.to(DEVICE).eval()        
         # En enda kort sammanfattningsrad per epoch
         
@@ -366,6 +366,7 @@ if __name__ == "__main__":
     
     
     
+
 
 
 
