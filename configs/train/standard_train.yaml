@@ -15,7 +15,7 @@ loss:
   alpha:  0.25
   cls_smoothing:  0.05
   area_cells_min:  4
-  area_cells_max: 256
+  area_cells_max: 400
   area_tol:  1.25
   size_prior_w: 0.2
   ar_prior_w:  0.1
@@ -53,4 +53,5 @@ training:
   save_by: 
   pretrained: true
   
+
 
