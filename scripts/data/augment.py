@@ -58,8 +58,9 @@ def get_base_transform(img_size=416):
     """
     return A.Compose(
         [
-            A.HorizontalFlip(p=0.5),
-
+            A.HorizontalFlip(p=0.3),
+            A.VerticalFlip(p=0.3),
+            A.Resize(img_size,img_size, interpolation=cv2.INTER_LINEAR, p=0.3),
             make_affine(
                 rotate=(-20, 20),
                 shear=(-10, 10),
