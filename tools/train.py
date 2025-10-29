@@ -80,8 +80,8 @@ if __name__ == "__main__":
     Path(log_dir).mkdir(parents=True, exist_ok=True)
     with open(Path(log_dir) / "merged_config.yaml", "w", encoding="utf-8") as f:
         yaml.safe_dump(config, f, sort_keys=False, allow_unicode=True)
-
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    _DEVICE = config["training"]["device"]
+    DEVICE = f"cuda:{_DEVICE}" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.benchmark = True if DEVICE == "cuda" else False
 
     NUM_CLASSES = int(config["model"]["num_classes"])
@@ -280,9 +280,9 @@ if __name__ == "__main__":
     best_metric_no_aug = -1.0
     val_thresh = 0.3
     for epoch in range(epochs):
-        if epoch == (int(epochs*0.7)) and use_augment:
+        if epoch+1 == (int(epochs*0.6)) and use_augment:
             train_ds.is_train = False
-        if epoch > (int(epochs*0.9)):
+        if epoch+1 > (int(epochs*0.9)):
             train_ds.transforms = get_val_transform(IMG_SIZE)
             use_augment = False
             train_ds.is_train = False
