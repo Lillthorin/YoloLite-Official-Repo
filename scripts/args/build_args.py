@@ -248,7 +248,7 @@ def build_argparser() -> argparse.ArgumentParser:
     # Vanliga CLI overrides (valfria)
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--batch_size", type=int, default=16)
-    ap.add_argument("--device", type=str, default="cuda")   # t.ex. "0", "cpu"
+    ap.add_argument("--device", type=str, default="0", help="Device (0,1,2,3) or cpu")   # t.ex. "0", "cpu"
     ap.add_argument("--img_size", type=int, default=640)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--augment", default=True, action=argparse.BooleanOptionalAction)
@@ -289,5 +289,7 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
         else:
             print("Invalid token for save_by. Valid tokens: [AP50, AP75, AP, AR, APS, APM, APL]")
             raise ValueError
+    if args.device is not None:
+        config["training"]["device"] = str(args.device)
     return config
 
