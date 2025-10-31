@@ -55,7 +55,7 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 | valentines chocolate  | 0.110  | 0.059  | 0.978 | 0.532 | 0.981  |   0.983    |
 | weed crop aerial      | 0.820  | 0.615  | 0.544 | 0.435 | 0.592  |   0.581    |
 | x ray                 | 0.722  | 0.506  | 0.837 | 0.800 | 0.843  |   0.835    |
-
+| **Average**           | 0.726 | 0.562 | 0.730 | 0.598 | 0.785 | 0.769 |
 
 # Speed
 
@@ -98,6 +98,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
