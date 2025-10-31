@@ -60,7 +60,7 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 | **Average**           | 0.726 | 0.562 | 0.730 | 0.598 | 0.785 | 0.769 |
 
 # Speed
-
+**ALL SPEED MEASURMENTS INCLUDE PRE/POST OPS!**
 Speed testing was done by first converting each model to onnx with export_onnx.py 
 
     python export/export_onnx.py --weights runs/train/1/weights/best_model_state.pt --simplify
@@ -107,6 +107,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
