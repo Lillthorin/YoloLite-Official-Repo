@@ -28,9 +28,11 @@ NOTE!
 
 The models perform very similar to eachother, and sometimes the smaller model wins. This might be to several different factors. Larger models need more steps to converge. See this benchmark as a quick demonstration of the models potential to be trained on different datasets. 
 
-NEW VALUES AFTER UPDATED LOSS FUNCTION!
+**NEW VALUES AFTER UPDATED LOSS FUNCTION!**
+
 yololite_m and yololite_n refers to the models under models_v2 folder. 
 Some datasets are still in progress, table will be updated.
+
 Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 
 | Dataset               | YOLOv5 | YOLOv7 | edge_m | edge_n | yololite_m | yololite_n |
@@ -105,6 +107,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
