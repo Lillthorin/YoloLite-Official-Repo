@@ -63,13 +63,13 @@ Speed testing was done by first converting each model to onnx with export_onnx.p
 
     python export/export_onnx.py --weights runs/train/1/weights/best_model_state.pt --simplify
 
-After exporting all images was tested on a test image with the following command
+After exporting all images was tested on a test image with the following commands
 
-    python export/infer_onnx.py --model runs/export/medium/model_decoded.onnx --img "testimg.jpg" --providers "cpu" 
+    python export/infer_onnx.py --model runs/export/medium/model_decoded.onnx --img "testimg.jpg"  
 
 cuda
 
-    python export/infer_onnx.py --model runs/export/medium/model_decoded.onnx --img "testimg.jpg" --providers "cuda"
+    python export/infer_onnx.py --model runs/export/medium/model_decoded.onnx --img "testimg.jpg" --provider "cuda"
 
 Hardware: 
 CPU AMD Ryzen 5 5500
@@ -105,6 +105,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
