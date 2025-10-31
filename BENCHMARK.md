@@ -28,6 +28,35 @@ NOTE!
 
 The models perform very similar to eachother, and sometimes the smaller model wins. This might be to several different factors. Larger models need more steps to converge. See this benchmark as a quick demonstration of the models potential to be trained on different datasets. 
 
+NEW VALUES AFTER UPDATED LOSS FUNCTION!
+yololite_m and yololite_n refers to the models under models_v2 folder. 
+Some datasets are still in progress, table will be updated.
+Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
+
+| Dataset               | YOLOv5 | YOLOv7 | edge_m | edge_n | yololite_m | yololite_n |
+|-----------------------|:------:|:------:|:------:|:------:|:------:|:------:|
+| axial mri             | 0.638  | 0.549  | 0.584 | 0.412 | 0.546 |   0.642   |
+| bccd ouzjz            | 0.912  | 0.922  | 0.895 |  -    | 0.884  |   0.881  |
+| chess pieces          | 0.977  | 0.830  | 0.985 | 0.989 | 0.990  | 0.988  |
+| circuit voltages      | 0.797  | 0.257  | 0.871 | 0.755 | 0.826  | 0.833  |
+| farcry6 videogame     | 0.619  | 0.216  | 0.494 |   —   |   —    | 0.448 |
+| gauge u2lwv           | 0.642  | 0.668  | 0.600 |   —   |   —    |   0.629    |
+| lettuce pallets       | 0.945  | 0.966  | 0.915 | 0.901 | 0.898  |   0.899    |
+| mask wearing          | 0.788  | 0.513  | 0.575 |   —   |  0.757 |   0.725   |
+| sedimentary features  | 0.327  | 0.244  | 0.339 | 0.250 | 0.364  | 0.355  |
+| shark teeth           | 0.948  | 0.863  |  1.00 |   —   |   1.00 |  0.989 |
+| sign language         | 0.870  | 0.255  | 0.954 |   —   |   —    |   0.961    |
+| signatures xc8up      | 0.961  | 0.932  | 0.819 |   —   |  0.883 |   0.902   |
+| soccer players        | 0.660  | 0.399  | 0.768 | 0.687 | 0.782  | 0.783  |
+| solar panels          | 0.413  | 0.261  | 0.481 | 0.317 | 0.623  | 0.576  |
+| street work           | 0.478  | 0.708  | 0.555 | 0.496 | 0.631  | 0.620    |
+| thermal cheetah       | 0.931  | 0.513  | 0.854 |   —   | 0.834  |  0.810    |
+| thermal dogs          | 0.967  | 0.957  | 0.556 |   —   | 0.916  |   0.940    |
+| valentines chocolate  | 0.110  | 0.059  | 0.978 | 0.532 | 0.981  |   0.983    |
+| weed crop aerial      | 0.820  | 0.615  | 0.544 | 0.435 | 0.592  |   0.581    |
+| x ray                 | 0.722  | 0.506  | 0.837 | 0.800 | 0.843  |   0.835    |
+
+
 # Speed
 
 Speed testing was done by first converting each model to onnx with export_onnx.py 
@@ -69,6 +98,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
