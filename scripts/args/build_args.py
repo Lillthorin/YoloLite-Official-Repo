@@ -168,9 +168,6 @@ def load_configs(model_yaml: str, train_yaml: str, data_yaml: str) -> Dict[str, 
         if p:
             _ensure_dir_exists(p, tag)
 
-    if test_img:
-        _ensure_dir_exists(test_img, "test_images")
-
     for tag, p in [("train_labels", train_lbl),
                    ("val_labels",   val_lbl)]:
         if p:
@@ -292,4 +289,5 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
     if args.device is not None:
         config["training"]["device"] = str(args.device)
     return config
+
 
