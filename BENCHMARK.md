@@ -81,6 +81,13 @@ GPU NVIDIA GeForce RTX 4060
 | CPU    | 67.0ms  | 45.57ms    | 40.18ms   | 23.88ms  |
 | GPU    | 24.95ms   | 23.05ms    | 20.83ms   | 20.2ms   | 
 
+V2_Models  NaN == Not tested 
+
+| Device | Yololite_n | Yololite_s | Yololite_m | Yololite_l |
+|------: |------: |------:  |-------:|------:|
+| CPU    | 87.05ms  | NaN    | 156.59ms   | NaN  |
+| GPU    | 21.07ms   | NaN   | 25.65ms   | NaN   | 
+
 
 # Training logs
 
@@ -98,6 +105,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
