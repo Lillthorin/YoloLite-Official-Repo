@@ -1,4 +1,4 @@
-# loss_v6_style.py
+# loss.py
 import math
 from typing import List, Tuple
 import torch
@@ -477,4 +477,5 @@ class LossAF(nn.Module):
             "cls": float(loss_cls),
             "pos": total_pos / max(B, 1),
         }
+
 
