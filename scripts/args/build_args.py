@@ -168,11 +168,16 @@ def load_configs(model_yaml: str, train_yaml: str, data_yaml: str) -> Dict[str, 
         if p:
             _ensure_dir_exists(p, tag)
 
+    if test_img:
+        _ensure_dir_exists(test_img, "test_images")
+
     for tag, p in [("train_labels", train_lbl),
                    ("val_labels",   val_lbl)]:
         if p:
             _ensure_dir_exists(p, tag)
 
+    if test_lbl:
+        _ensure_dir_exists(test_lbl, "test_labels")
 
     # 6) Skriv in i config som tidigare
     dataset_block = {
@@ -248,6 +253,7 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--augment", default=True, action=argparse.BooleanOptionalAction)
     ap.add_argument("--use_p6",  default=False, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--use_p2",  default=False, action=argparse.BooleanOptionalAction)
     ap.add_argument("--resume", type=str, default=None, help="Resume training from last checkpoint if available")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate if set")
     ap.add_argument("--save_every", type=int, default=25, help="Save every x epoch")
@@ -270,6 +276,8 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
         config.setdefault("training", {})["device"] = args.device
     if args.use_p6 is not None:
         config["training"]["use_p6"] = args.use_p6
+    if args.use_p2 is not None:
+        config["training"]["use_p2"] = args.use_p2
     if args.augment is not None:
         config["training"]["augment"] = args.augment  # redan bool
     if args.resume is not None:
@@ -287,6 +295,4 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
     if args.device is not None:
         config["training"]["device"] = str(args.device)
     return config
-
-
 
