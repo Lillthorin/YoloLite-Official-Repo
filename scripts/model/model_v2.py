@@ -1,298 +1,399 @@
-import argparse
-import os
-from pathlib import Path
-from typing import Dict, Any
-import yaml
-def _next_run_dir(base: str) -> str:
-    """
-    Skapa och returnera nästa lediga run-mapp som en numerisk subdir under 'base'.
-    Ex: base='runs' -> 'runs/1', 'runs/2', ...
-        base='runs/weeds' -> 'runs/weeds/1', ...
-    """
-    root = Path(base)
-    root.mkdir(parents=True, exist_ok=True)
-    n = 1
-    while True:
-        cand = root / str(n)
-        try:
-            cand.mkdir(parents=False, exist_ok=False)
-            return str(cand.resolve())
-        except FileExistsError:
-            n += 1
+import torch
+import torch.nn as nn
+import timm
+import torch.nn.functional as F
+import math
 
-def _update_latest_pointer(parent: str, target: str):
-    """
-    Försök skapa/uppdatera en 'latest' som pekar på target.
-    - Unix: symbolisk länk 'latest' -> target
-    - Windows utan admin: skriv en textfil 'latest.txt' med sökvägen
-    """
-    parent_p = Path(parent)
-    latest_link = parent_p / "latest"
+def init_detect_bias(head_moduledict, num_classes, p_obj=0.01):
+    """Sätter rimliga start-bias för obj/cls (decoupled heads)."""
+    obj_bias = -math.log((1 - p_obj) / p_obj)      # ~ -4.595 för p=0.01
+    cls_bias = (-math.log(num_classes)) if num_classes > 1 else 0.0
+    with torch.no_grad():
+        head_moduledict["out"]["obj"].bias.fill_(obj_bias)
+        head_moduledict["out"]["cls"].bias.fill_(cls_bias)
+        head_moduledict["out"]["box"].bias.zero_()
+def conv_block(c_in, c_out, n=1):
+    """Bygger n st conv-baserade block."""
+    layers = []
+    for i in range(n):
+        layers.append(nn.Conv2d(c_in if i == 0 else c_out, c_out, 3, padding=1, bias=False))
+        layers.append(nn.BatchNorm2d(c_out))
+        layers.append(nn.SiLU(inplace=True))
+    return nn.Sequential(*layers)
+class DWConvBlock(nn.Module):
+    """Depthwise separable conv block med ReLU."""
+    def __init__(self, c_in, c_out, n=1):
+        super().__init__()
+        layers = []
+        for i in range(n):
+            layers.extend([
+                nn.Conv2d(c_in if i==0 else c_out, c_in if i==0 else c_out,
+                          kernel_size=3, padding=1, groups=(c_in if i==0 else c_out), bias=False),
+                nn.Conv2d(c_in if i==0 else c_out, c_out, kernel_size=1, bias=False),
+                nn.BatchNorm2d(c_out),
+                nn.ReLU(inplace=True)
+            ])
+        self.block = nn.Sequential(*layers)
 
-    try:
-        # Radera existerande länk/fil
-        if latest_link.exists() or latest_link.is_symlink():
-            latest_link.unlink()
-        # Skapa symlink (kan kräva admin på Windows)
-        latest_link.symlink_to(Path(target), target_is_directory=True)
-    except Exception:
-        # Fallback: skriv latest.txt
-        try:
-            with open(parent_p / "latest.txt", "w", encoding="utf-8") as f:
-                f.write(str(Path(target)))
-        except Exception:
-            pass  # om även detta fallerar, hoppa tyst
+    def forward(self, x):
+        return self.block(x)
 
-def _read_yaml(path: str) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
 
-def _norm(p: str) -> str:
-    # Normalisera till absolut sökväg och behåll Windows-stigar
-    return str(Path(p).expanduser().resolve()) if p else p
+def make_head(A, head_depth, C, fpn_channels):
+    """Head med depthwise conv + ReLU, samma outputformat."""
+    trunk = nn.Sequential(*[
+        DWConvBlock(fpn_channels, fpn_channels) for _ in range(head_depth)
+    ])
 
-def _infer_labels_dir(images_dir: str) -> str:
-    # Byt .../images -> .../labels (Ultralytics-konvention)
-    # Fungerar även om det heter "images" med olika case men vi håller det enkelt
-    if images_dir is None:
-        return None
-    parts = Path(images_dir).parts
-    if len(parts) >= 1 and parts[-1].lower() == "images":
-        return str(Path(*parts[:-1], "labels"))
-    # Om ingen "images" – anta syskonmapp "labels" bredvid
-    return str(Path(images_dir).parent / "labels")
+    out_layers = nn.ModuleDict({
+        "box": nn.Conv2d(fpn_channels, A * 4, 1),
+        "obj": nn.Conv2d(fpn_channels, A * 1, 1),
+        "cls": nn.Conv2d(fpn_channels, A * C, 1)
+    })
+    return nn.ModuleDict({"trunk": trunk, "out": out_layers})
 
-def _ensure_dir_exists(p: str, tag: str):
-    if p and not Path(p).exists():
-        raise FileNotFoundError(f"{tag} path not found: {p}")
 
-def _deep_merge(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
-    """Merge b into a (recursively), returning a."""
-    for k, v in (b or {}).items():
-        if isinstance(v, dict) and isinstance(a.get(k), dict):
-            _deep_merge(a[k], v)
+
+def _flatten_level_outputs(outs, export_concat: bool):
+    if not export_concat:
+        return outs
+    flat = []
+    for p in outs:  # p: [B, A, S, S, E]
+        B, A, S, _, E = p.shape
+        flat.append(p.view(B, -1, E))
+    return torch.cat(flat, dim=1)  # [B, N_total, E]
+
+
+# --- inside model_v2.py ---
+
+def _pick_out_indices(feature_info, take: int = 3):
+    n = len(feature_info)
+    out_idx = list(range(n - take, n))
+    reductions = [feature_info[i]["reduction"] for i in out_idx]
+    chs = [feature_info[i]["num_chs"] for i in out_idx]
+    return out_idx, reductions, chs
+
+
+class YOLOLiteMS(nn.Module):
+    def __init__(
+        self,
+        backbone="resnet18",
+        num_classes=3,
+        fpn_channels=128,
+        num_anchors_per_level=(3, 3, 3, 3),
+        pretrained=True,
+        depth_multiple: float = 1.0,
+        width_multiple: float = 1.0,
+        head_depth: int = 1,
+        use_p6: bool = True,
+        use_p2: bool = False,             # <-- NEW
+    ):
+        super().__init__()
+
+        # Probe backbone once to learn channels/reductions
+        tmp = timm.create_model(backbone, features_only=True, pretrained=pretrained)
+        take = 4 if use_p2 else 3         # <-- pick C2..C5 if P2, else C3..C5
+        out_idx, reductions, chs = _pick_out_indices(tmp.feature_info, take=take)
+
+        self.backbone = timm.create_model(
+            backbone, features_only=True, pretrained=pretrained, out_indices=out_idx
+        )
+        self.reductions = reductions                      # e.g. [4,8,16,32] or [8,16,32]
+        self.use_p6 = use_p6
+        self.use_p2 = use_p2                              # <-- NEW
+
+        # Width/Depth scaling
+        fpn_channels = int(fpn_channels * width_multiple)
+        d = max(1, round(2 * depth_multiple))
+
+        # Unpack channels depending on P2
+        if self.use_p2:
+            c2, c3, c4, c5 = chs
         else:
-            a[k] = v
-    return a
+            c3, c4, c5 = chs
 
-def _abs_from_yaml_dir(raw: str, data_yaml: str) -> str:
-    if not raw:
-        return ""
-    yaml_dir = Path(data_yaml).expanduser().resolve().parent
-    P = Path(raw).expanduser()
-    return str(P.resolve() if P.is_absolute() else (yaml_dir / P).resolve())
+        # FPN laterals
+        if self.use_p2:
+            self.lateral2 = nn.Conv2d(c2, fpn_channels, 1)  # <-- NEW
+        self.lateral3 = nn.Conv2d(c3, fpn_channels, 1)
+        self.lateral4 = nn.Conv2d(c4, fpn_channels, 1)
+        self.lateral5 = nn.Conv2d(c5, fpn_channels, 1)
 
-def _fallback_split_dir(split: str, data_yaml: str, kind: str) -> str | None:
-    """
-    kind: 'images' eller 'labels'
-    Prova yaml_dir/<split>/<kind> (val provar även valid/<kind>).
-    Returnera absolut str om finns, annars None.
-    """
-    base = Path(data_yaml).expanduser().resolve().parent
-    candidates = []
-    if split == "val":
-        candidates += [base / "val" / kind, base / "valid" / kind]
-    else:
-        candidates += [base / split / kind]
-    for c in candidates:
-        if c.exists():
-            return str(c.resolve())
-    return None
+        # FPN smooth blocks
+        if self.use_p2:
+            self.smooth2  = conv_block(fpn_channels, fpn_channels, n=d)  # <-- NEW
+        self.smooth3  = conv_block(fpn_channels, fpn_channels, n=d)
+        self.smooth4  = conv_block(fpn_channels, fpn_channels, n=d)
+        self.smooth5  = conv_block(fpn_channels, fpn_channels, n=d)
 
-def _ensure_or_fallback(img_path: str, split: str, data_yaml: str, tag: str) -> str:
-    """
-    Om img_path finns -> returnera.
-    Om inte -> prova fallback till yaml_dir/<split>/images (plus valid/images för val).
-    Om fallback finns -> returnera den, annars behåll original (låter _ensure_dir_exists kasta).
-    """
-    if img_path and Path(img_path).exists():
-        return img_path
-    fb = _fallback_split_dir(split, data_yaml, "images")
-    return fb if fb else img_path
+        # P6 path
+        self.p6_down  = nn.Conv2d(fpn_channels, fpn_channels, 3, 2, 1, bias=False)
+        self.p6_bn    = nn.BatchNorm2d(fpn_channels)
+        self.p6_act   = nn.SiLU(inplace=True)
+        self.smooth6  = conv_block(fpn_channels, fpn_channels, n=d)
 
-def _labels_or_fallback(lbl_path: str, img_path: str, split: str, data_yaml: str) -> str:
-    """
-    Om labels anges och finns -> returnera.
-    Annars prova fallback: yaml_dir/<split>/labels.
-    Finns inte det heller -> inferera från img_path (.../images -> .../labels).
-    """
-    if lbl_path and Path(lbl_path).exists():
-        return lbl_path
-    fb = _fallback_split_dir(split, data_yaml, "labels")
-    if fb:
-        return fb
-    # inferera från images
-    if img_path:
-        p = Path(img_path)
-        return str((p.parent / "labels").resolve())
-    return ""
+        # Anchors per level
+        C = num_classes
+        # Determine level count/order
+        level_names = (["p2"] if self.use_p2 else []) + ["p3", "p4", "p5"] + (["p6"] if self.use_p6 else [])
+        L = len(level_names)
 
-def load_configs(model_yaml: str, train_yaml: str, data_yaml: str) -> Dict[str, Any]:
-    # ... (din befintliga setup) ...
-    model_yaml = _norm(model_yaml) if model_yaml else None
-    train_yaml = _norm(train_yaml) if train_yaml else None
-    data_yaml  = _norm(data_yaml)  if data_yaml else None
+        # Normalize the provided tuple to L levels:
+        # start from P3,P4,P5 defaults, then mirror P3 to P2 (if used) and P5 to P6 (if used)
+        if len(num_anchors_per_level) >= 3:
+            A3, A4, A5 = map(int, num_anchors_per_level[:3])
+            A2 = A3
+            A6 = A5
+        else:
+            # extremely defensive fallback
+            A2 = A3 = A4 = A5 = A6 = int(num_anchors_per_level[0]) if len(num_anchors_per_level) else 1
 
-    model_cfg = _read_yaml(model_yaml) if model_yaml else {}
-    train_cfg = _read_yaml(train_yaml) if train_yaml else {}
-    data_cfg  = _read_yaml(data_yaml)  if data_yaml  else {}
-
-    # 1) Först: bygg som vanligt relativt yaml_dir (absolut om absoluta)
-    train_img = _abs_from_yaml_dir(data_cfg.get("train",""), data_yaml)
-    val_img   = _abs_from_yaml_dir(data_cfg.get("val",""),   data_yaml)
-    test_img  = _abs_from_yaml_dir(data_cfg.get("test",""),  data_yaml)
-
-    # 2) Om de inte finns: fallback till yaml_dir/<split>/images (+ valid/images)
-    train_img = _ensure_or_fallback(train_img, "train", data_yaml, "train_images")
-    val_img   = _ensure_or_fallback(val_img,   "val",   data_yaml, "val_images")
-    test_img  = _ensure_or_fallback(test_img,  "test",  data_yaml, "test_images")
-
-    # 3) Labels (om YAML hade labels, resolva dem – annars tom str)
-    labels_cfg = data_cfg.get("labels") if isinstance(data_cfg.get("labels"), dict) else {}
-    raw_train_lbl = labels_cfg.get("train","") if labels_cfg else ""
-    raw_val_lbl   = labels_cfg.get("val","")   if labels_cfg else ""
-    raw_test_lbl  = labels_cfg.get("test","")  if labels_cfg else ""
-
-    train_lbl = _abs_from_yaml_dir(raw_train_lbl, data_yaml) if raw_train_lbl else ""
-    val_lbl   = _abs_from_yaml_dir(raw_val_lbl,   data_yaml) if raw_val_lbl   else ""
-    test_lbl  = _abs_from_yaml_dir(raw_test_lbl,  data_yaml) if raw_test_lbl  else ""
-
-    # 4) Labels fallback: yaml_dir/<split>/labels eller inferera från images
-    train_lbl = _labels_or_fallback(train_lbl, train_img, "train", data_yaml)
-    val_lbl   = _labels_or_fallback(val_lbl,   val_img,   "val",   data_yaml)
-    test_lbl  = _labels_or_fallback(test_lbl,  test_img,  "test",  data_yaml)
-
-    # 5) Existenskontroll: train/val hårt, test valfritt
-    for tag, p in [("train_images", train_img),
-                   ("val_images",   val_img)]:
-        if p:
-            _ensure_dir_exists(p, tag)
-
-    if test_img:
-        _ensure_dir_exists(test_img, "test_images")
-
-    for tag, p in [("train_labels", train_lbl),
-                   ("val_labels",   val_lbl)]:
-        if p:
-            _ensure_dir_exists(p, tag)
-
-    if test_lbl:
-        _ensure_dir_exists(test_lbl, "test_labels")
-
-    # 6) Skriv in i config som tidigare
-    dataset_block = {
-        "dataset": {
-            "train_images": train_img,
-            "val_images":   val_img,
-            "train_labels": train_lbl,
-            "val_labels":   val_lbl,
-            **({"test_images": test_img} if test_img else {}),
-            **({"test_labels": test_lbl} if test_lbl else {}),
-            "names": list(data_cfg.get("names", [])) or [str(i) for i in range(int(data_cfg.get("nc", 0)))],
+        anchors_map = {
+            "p2": A2, "p3": A3, "p4": A4, "p5": A5, "p6": A6
         }
-    }
-    names = data_cfg.get("names")
-    if names is not None and not isinstance(names, (list, tuple)):
-        raise ValueError("data.yaml 'names' must be a list of class names.")
-    nc = data_cfg.get("nc", len(names) if names else None)
-    if nc is None:
-        raise ValueError("Unable to infer 'nc'. Please set 'nc' or provide 'names' in data.yaml.")
+        self.num_anchors_per_level = tuple(anchors_map[n] for n in level_names)
+        self.num_classes = C
 
-    # --- Sätt num_classes i model om ej explicit ---
-    model_block = model_cfg.get("model", {})
-    if "num_classes" not in model_block or model_block.get("num_classes") is None:
-        model_block["num_classes"] = int(nc)
-    model_cfg["model"] = model_block
+        # Export switches
+        self.export_concat = False
+        self.export_decode = False
 
-    # --- Standardvärden om de saknas ---
-    # img_size kan bo i training.img_size; fallback till 640
-    if "training" not in train_cfg:
-        train_cfg["training"] = {}
-    if "img_size" not in train_cfg["training"]:
-        # Behåll kompatibilitet med gamla "dataset.img_size"
-        ds_img_size = model_cfg.get("dataset", {}).get("img_size") or train_cfg.get("dataset", {}).get("img_size")
-        train_cfg["training"]["img_size"] = int(ds_img_size) if ds_img_size else 640
+        # Heads
+        if self.use_p2:
+            self.head2 = make_head(anchors_map["p2"], head_depth, C, fpn_channels)
+            init_detect_bias(self.head2, C)
+        self.head3 = make_head(anchors_map["p3"], head_depth, C, fpn_channels)
+        self.head4 = make_head(anchors_map["p4"], head_depth, C, fpn_channels)
+        self.head5 = make_head(anchors_map["p5"], head_depth, C, fpn_channels)
+        init_detect_bias(self.head3, C)
+        init_detect_bias(self.head4, C)
+        init_detect_bias(self.head5, C)
+        if self.use_p6:
+            self.head6 = make_head(anchors_map["p6"], head_depth, C, fpn_channels)
+            init_detect_bias(self.head6, C)
 
-    # --- Slå ihop:  dataset_block + model_cfg + train_cfg -> config ---
-    config: Dict[str, Any] = {}
-    _deep_merge(config, dataset_block)
-    _deep_merge(config, model_cfg)
-    _deep_merge(config, train_cfg)
+        # Self-describing strides
+        base = list(self.reductions)                               # [4,8,16,32] or [8,16,32]
+        self.fpn_strides = base + ([base[-1] * 2] if self.use_p6 else [])
 
-    # --- Säkerställ logging + auto-inkrementerande run-dir ---
-    log_cfg = config.get("logging", {})
-    base_log_dir = log_cfg.get("log_dir")  # kan vara None eller t.ex. 'runs' / 'runs/weeds'
+    def _upsample_add(self, x, y):
+        return F.interpolate(x, size=y.shape[-2:], mode="nearest") + y
 
-    # Standardbas om inget angetts
-    if not base_log_dir or not str(base_log_dir).strip():
-        base_log_dir = "runs"
+    def _forward_head(self, p, head_dict, A):
+        p = head_dict["trunk"](p)
+        box = head_dict["out"]["box"](p)
+        obj = head_dict["out"]["obj"](p)
+        cls = head_dict["out"]["cls"](p)
+        B, _, S, _ = box.shape
+        box = box.view(B, A, 4, S, S)
+        obj = obj.view(B, A, 1, S, S)
+        cls = cls.view(B, A, self.num_classes, S, S)
+        out = torch.cat([box, obj, cls], dim=2)
+        return out.permute(0, 1, 3, 4, 2).contiguous()
 
-    # Skapa nästa run-katalog under basen
-    run_dir = _next_run_dir(base_log_dir)
-    config["logging"] = {"log_dir": run_dir}
-
-    # (Valfritt) uppdatera en 'latest' pekare i basmappen
-    try:
-        _update_latest_pointer(parent=str(Path(run_dir).parent), target=run_dir)
-    except Exception:
-        pass
-
-
-    return config
-
-def build_argparser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--model",  default="configs/models/yololite_m.yaml", type=str, required=True, help="Path to model.yaml")
-    ap.add_argument("--train", default="configs/train/standard_train.yaml", type=str, required=False, help="Path to train.yaml")
-    ap.add_argument("--data",   type=str, required=True, help="Path to data.yaml")
-    # Vanliga CLI overrides (valfria)
-    ap.add_argument("--epochs", type=int, default=None)
-    ap.add_argument("--batch_size", type=int, default=16)
-    ap.add_argument("--device", type=str, default="0", help="Device (0,1,2,3) or cpu")   # t.ex. "0", "cpu"
-    ap.add_argument("--img_size", type=int, default=640)
-    ap.add_argument("--workers", type=int, default=4)
-    ap.add_argument("--augment", default=True, action=argparse.BooleanOptionalAction)
-    ap.add_argument("--use_p6",  default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument("--use_p2",  default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument("--resume", type=str, default=None, help="Resume training from last checkpoint if available")
-    ap.add_argument("--lr", type=float, default=None, help="Override learning rate if set")
-    ap.add_argument("--save_every", type=int, default=25, help="Save every x epoch")
-    ap.add_argument("--save_by", type=str, default='AP', help="Save best model by coco evaluation, viable setting [AP50, AP75, AP, AR, APS, APM, APL]")  
-    
-    return ap
-
-def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[str, Any]:
-    # CLI ska få sista ordet
-    ok_save_by = ["AP50", "AP75", "AP", "AR", "APS", "APM", "APL"]
-    if args.epochs is not None:
-        config["training"]["epochs"] = int(args.epochs)
-    if args.batch_size is not None:
-        config["training"]["batch_size"] = int(args.batch_size)
-    if args.img_size is not None:
-        config["training"]["img_size"] = int(args.img_size)
-    if args.workers is not None:
-        config["training"]["num_workers"] = int(args.workers)
-    if args.device is not None:
-        config.setdefault("training", {})["device"] = args.device
-    if args.use_p6 is not None:
-        config["training"]["use_p6"] = args.use_p6
-    if args.use_p2 is not None:
-        config["training"]["use_p2"] = args.use_p2
-    if args.augment is not None:
-        config["training"]["augment"] = args.augment  # redan bool
-    if args.resume is not None:
-        config["training"]["resume"] = str(args.resume)
-    if args.lr is not None:
-        config["training"]["lr"] = float(args.lr)
-    if args.save_every is not None:
-        config["training"]["save_every"] = int(args.save_every)
-    if args.save_by is not None:
-        if args.save_by in ok_save_by:
-            config["training"]["save_by"] = str(args.save_by)
+    def forward(self, x):
+        feats = self.backbone(x)  # len 3 or 4 depending on P2
+        if self.use_p2:
+            c2, c3, c4, c5 = feats
         else:
-            print("Invalid token for save_by. Valid tokens: [AP50, AP75, AP, AR, APS, APM, APL]")
-            raise ValueError
-    if args.device is not None:
-        config["training"]["device"] = str(args.device)
-    return config
+            c3, c4, c5 = feats
 
+        p5 = self.smooth5(self.lateral5(c5))
+        p4 = self.smooth4(self._upsample_add(p5, self.lateral4(c4)))
+        p3 = self.smooth3(self._upsample_add(p4, self.lateral3(c3)))
+
+        outs = []
+        if self.use_p2:
+            p2 = self.smooth2(self._upsample_add(p3, self.lateral2(c2)))
+            outs.append(self._forward_head(p2, self.head2, self.num_anchors_per_level[0]))
+
+        # Heads for P3,P4,P5 (and maybe P6)
+        if self.use_p2:
+            idx = 1  # next anchor index after P2
+        else:
+            idx = 0
+
+        outs.append(self._forward_head(p3, self.head3, self.num_anchors_per_level[idx + 0]))
+        outs.append(self._forward_head(p4, self.head4, self.num_anchors_per_level[idx + 1]))
+        outs.append(self._forward_head(p5, self.head5, self.num_anchors_per_level[idx + 2]))
+
+        if self.use_p6:
+            p6 = self.smooth6(self.p6_act(self.p6_bn(self.p6_down(p5))))
+            outs.append(self._forward_head(p6, self.head6, self.num_anchors_per_level[idx + 3]))
+
+        return _flatten_level_outputs(outs, self.export_concat)
+
+    # --- Export/script helpers ---
+    def get_strides(self):
+        return list(self.fpn_strides)
+
+    def get_num_anchors_per_level(self):
+        return tuple(self.num_anchors_per_level)
+
+    def print_strides(self, img_size=640):
+        with torch.no_grad():
+            d = next(self.parameters()).device
+            x = torch.zeros(1, 3, img_size, img_size, device=d)
+            feats = self.backbone(x)
+            if self.use_p2:
+                c2, c3, c4, c5 = feats
+                Ss = [c2.shape[-1], c3.shape[-1], c4.shape[-1], c5.shape[-1]]
+            else:
+                c3, c4, c5 = feats
+                Ss = [c3.shape[-1], c4.shape[-1], c5.shape[-1]]
+            if self.use_p6:
+                Ss.append(Ss[-1] // 2)
+            strides = [img_size // S for S in Ss]
+            print(f"[YOLOLiteMS] grids={Ss} → strides={strides}")
+
+
+class YOLOLiteMS_CPU(nn.Module):
+    def __init__(
+        self,
+        backbone="mobilenetv3_small_100",
+        num_classes=3,
+        fpn_channels=96,
+        num_anchors_per_level=(3,3,3,3),
+        pretrained=True,
+        depth_multiple=0.75,
+        width_multiple=0.75,
+        head_depth=1,
+        use_p6: bool = True,
+        use_p2: bool = False,            # <-- NEW
+    ):
+        super().__init__()
+
+        tmp = timm.create_model(backbone, features_only=True, pretrained=pretrained)
+        take = 4 if use_p2 else 3
+        out_idx, reductions, chs = _pick_out_indices(tmp.feature_info, take=take)
+
+        self.backbone = timm.create_model(
+            backbone, features_only=True, pretrained=pretrained, out_indices=out_idx
+        )
+        self.reductions = reductions
+        self.use_p6 = use_p6
+        self.use_p2 = use_p2
+
+        fpn_channels = int(fpn_channels * width_multiple)
+        d = max(1, round(2 * depth_multiple))
+
+        if self.use_p2:
+            c2, c3, c4, c5 = chs
+        else:
+            c3, c4, c5 = chs
+
+        # DW-friendly FPN
+        if self.use_p2:
+            self.lateral2 = nn.Conv2d(c2, fpn_channels, 1)
+            self.smooth2  = DWConvBlock(fpn_channels, fpn_channels, n=d)
+        self.lateral3 = nn.Conv2d(c3, fpn_channels, 1)
+        self.lateral4 = nn.Conv2d(c4, fpn_channels, 1)
+        self.lateral5 = nn.Conv2d(c5, fpn_channels, 1)
+        self.smooth3  = DWConvBlock(fpn_channels, fpn_channels, n=d)
+        self.smooth4  = DWConvBlock(fpn_channels, fpn_channels, n=d)
+        self.smooth5  = DWConvBlock(fpn_channels, fpn_channels, n=d)
+
+        # P6 DW path
+        self.p6_down  = nn.Conv2d(fpn_channels, fpn_channels, 3, 2, 1, bias=False)
+        self.p6_bn    = nn.BatchNorm2d(fpn_channels)
+        self.p6_act   = nn.ReLU(inplace=True)
+        self.smooth6  = DWConvBlock(fpn_channels, fpn_channels, n=d)
+
+        # Anchors per level
+        C = num_classes
+        level_names = (["p2"] if self.use_p2 else []) + ["p3","p4","p5"] + (["p6"] if self.use_p6 else [])
+        L = len(level_names)
+        if len(num_anchors_per_level) >= 3:
+            A3, A4, A5 = map(int, num_anchors_per_level[:3])
+            A2 = A3
+            A6 = A5
+        else:
+            A2 = A3 = A4 = A5 = A6 = int(num_anchors_per_level[0]) if len(num_anchors_per_level) else 1
+        anchors_map = {"p2":A2, "p3":A3, "p4":A4, "p5":A5, "p6":A6}
+        self.num_anchors_per_level = tuple(anchors_map[n] for n in level_names)
+        self.num_classes = C
+
+        # Export flags
+        self.export_concat = False
+        self.export_decode = False
+
+        # Heads
+        if self.use_p2:
+            self.head2 = make_head(anchors_map["p2"], head_depth, C, fpn_channels)
+            init_detect_bias(self.head2, C)
+        self.head3 = make_head(anchors_map["p3"], head_depth, C, fpn_channels)
+        self.head4 = make_head(anchors_map["p4"], head_depth, C, fpn_channels)
+        self.head5 = make_head(anchors_map["p5"], head_depth, C, fpn_channels)
+        init_detect_bias(self.head3, C)
+        init_detect_bias(self.head4, C)
+        init_detect_bias(self.head5, C)
+        if self.use_p6:
+            self.head6 = make_head(anchors_map["p6"], head_depth, C, fpn_channels)
+            init_detect_bias(self.head6, C)
+
+        base = list(self.reductions)                         # [4,8,16,32] or [8,16,32]
+        self.fpn_strides = base + ([base[-1]*2] if self.use_p6 else [])
+
+    def _upsample_add(self, x, y):
+        return F.interpolate(x, size=y.shape[-2:], mode="nearest") + y
+
+    def _forward_head(self, p, head_dict, A):
+        p = head_dict["trunk"](p)
+        box = head_dict["out"]["box"](p)
+        obj = head_dict["out"]["obj"](p)
+        cls = head_dict["out"]["cls"](p)
+        B, _, S, _ = box.shape
+        box = box.view(B, A, 4, S, S)
+        obj = obj.view(B, A, 1, S, S)
+        cls = cls.view(B, A, self.num_classes, S, S)
+        out = torch.cat([box, obj, cls], dim=2)
+        return out.permute(0, 1, 3, 4, 2).contiguous()
+
+    def forward(self, x):
+        feats = self.backbone(x)
+        if self.use_p2:
+            c2, c3, c4, c5 = feats
+        else:
+            c3, c4, c5 = feats
+
+        p5 = self.smooth5(self.lateral5(c5))
+        p4 = self.smooth4(self._upsample_add(p5, self.lateral4(c4)))
+        p3 = self.smooth3(self._upsample_add(p4, self.lateral3(c3)))
+
+        outs = []
+        if self.use_p2:
+            p2 = self.smooth2(self._upsample_add(p3, self.lateral2(c2)))
+            outs.append(self._forward_head(p2, self.head2, self.num_anchors_per_level[0]))
+
+        idx = 1 if self.use_p2 else 0
+        outs.append(self._forward_head(p3, self.head3, self.num_anchors_per_level[idx + 0]))
+        outs.append(self._forward_head(p4, self.head4, self.num_anchors_per_level[idx + 1]))
+        outs.append(self._forward_head(p5, self.head5, self.num_anchors_per_level[idx + 2]))
+
+        if self.use_p6:
+            p6 = self.smooth6(self.p6_act(self.p6_bn(self.p6_down(p5))))
+            outs.append(self._forward_head(p6, self.head6, self.num_anchors_per_level[idx + 3]))
+
+        return _flatten_level_outputs(outs, self.export_concat)
+
+    def get_strides(self):
+        return list(self.fpn_strides)
+
+    def get_num_anchors_per_level(self):
+        return tuple(self.num_anchors_per_level)
+
+    def print_strides(self, img_size=640):
+        with torch.no_grad():
+            d = next(self.parameters()).device
+            x = torch.zeros(1, 3, img_size, img_size, device=d)
+            feats = self.backbone(x)
+            if self.use_p2:
+                c2, c3, c4, c5 = feats
+                Ss = [c2.shape[-1], c3.shape[-1], c4.shape[-1], c5.shape[-1]]
+            else:
+                c3, c4, c5 = feats
+                Ss = [c3.shape[-1], c4.shape[-1], c5.shape[-1]]
+            if self.use_p6:
+                Ss.append(Ss[-1] // 2)
+            strides = [img_size // S for S in Ss]
+            print(f"[YOLOLiteMS_CPU] grids={Ss} → strides={strides}")
