@@ -13,14 +13,13 @@ if str(ROOT) not in sys.path:
 from torch.utils.data import DataLoader
 from scripts.model.model_v2 import YOLOLiteMS, YOLOLiteMS_CPU
 from scripts.data.dataset import YoloDataset
-from scripts.data.augment import get_base_transform, get_val_transform, get_strong_transform
+from scripts.data.augment import get_base_transform, get_val_transform
 from scripts.loss.loss import LossAF
 from scripts.helpers.sanity_check import visualize_batch
 from scripts.helpers.schedulers import build_scheduler
 from scripts.helpers.helpers import yolo_collate, _coco_eval_from_lists,  set_seed, save_val_debug_anchorfree, _decode_batch_to_coco_dets, _xyxy_to_xywh, _write_json_atomic, _append_csv
 from scripts.args.build_args import build_argparser, load_configs, apply_overrides
 from scripts.data.plot_metrics import plot_metrics
-from scripts.data.p_r_f1 import build_curves_from_coco
 from scripts.helpers.evaluate import evaluate_model
 
 def save_checkpoint_state(model, metrics: dict, class_names, config: dict, out_path: str):
@@ -131,7 +130,7 @@ if __name__ == "__main__":
     
 
     batch_size = config["training"]["batch_size"]
-    num_anchors_per_level = _build_num_anchors(config["training"]["use_p6"], False)
+    num_anchors_per_level = _build_num_anchors(config["training"]["use_p6"], config["training"]["use_p2"])
     if config["model"]["arch"].lower() == 'yololitems':              
         # --- Modell ---
         model = YOLOLiteMS(
@@ -143,6 +142,7 @@ if __name__ == "__main__":
             head_depth=config["model"].get("head_depth", 1),
             num_anchors_per_level=num_anchors_per_level,   # t.ex. (3,3,3)
             use_p6=config["training"]["use_p6"],
+            use_p2=config["training"]["use_p2"]
             
         ).to(DEVICE)
     elif config["model"]["arch"].lower() == 'yololitems_cpu':
@@ -155,6 +155,7 @@ if __name__ == "__main__":
             width_multiple=config["model"].get("width_multiple", 1.0),
             head_depth=config["model"].get("head_depth", 1),
             use_p6=config["training"]["use_p6"],
+            use_p2 = config["training"]["use_p2"]
             
         ).to(DEVICE)
 
@@ -280,9 +281,9 @@ if __name__ == "__main__":
     best_metric_no_aug = -1.0
     val_thresh = 0.3
     for epoch in range(epochs):
-        if epoch+1 == (int(epochs*0.6)) and use_augment:
+        if epoch == (int(epochs*0.7)) and use_augment:
             train_ds.is_train = False
-        if epoch+1 > (int(epochs*0.9)):
+        if epoch > (int(epochs*0.9)):
             train_ds.transforms = get_val_transform(IMG_SIZE)
             use_augment = False
             train_ds.is_train = False
