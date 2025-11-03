@@ -36,7 +36,8 @@ Construct yaml as follow:
     --img_size, type=int, default=640
     --workers, type=int, default=4
     --augment, default=True, action=argparse.BooleanOptionalAction swap with --no--augment
-    --use_p6,  default=False, action=argparse.BooleanOptionalAction      
+    --use_p6,  default=False, action=argparse.BooleanOptionalAction  #swaps p5 with p6 head 
+    --use_p6,  default=False, action=argparse.BooleanOptionalAction  #swaps p3 with p2 head  
     --resume, type=str, default=None, help="Resume training from last checkpoint if available"
     --lr, type=float, default=None, help="Override learning rate if set"
     --save_every", type=int, default=25, help="Save every x epoch"
@@ -130,6 +131,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
