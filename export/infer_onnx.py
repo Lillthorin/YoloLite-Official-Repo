@@ -84,20 +84,21 @@ def build_session(model_path, providers, intra, inter):
 # ============ Main ============
 def main():
     ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help="Path till decoded .onnx")
     ap.add_argument("--img", default=None)
     ap.add_argument("--img_dir", default=None)
-    ap.add_argument("--img_size", type=int, default=640, help="Måste matcha ONNX decoded img_size")
+    ap.add_argument("--img_size", type=int, default=640, help="ONNX decoded img_size")
     ap.add_argument("--conf", type=float, default=0.3)
     ap.add_argument("--iou", type=float, default=0.3)
     ap.add_argument("--max_det", type=int, default=300)
     ap.add_argument("--no_letterbox", action="store_true")
     ap.add_argument("--save_txt", action="store_true")
-    ap.add_argument("--names", default=None, help="Komma-separerad lista eller fil (en per rad)")
+    ap.add_argument("--names", default=None, help="csv list or classes.txt file")
     # --- nya benchmark-flaggar ---
     ap.add_argument("--providers", default="cpu", choices=["cpu","cuda","tensorrt"])
-    ap.add_argument("--warmup", type=int, default=10, help="Antal tomma pass före mätning")
-    ap.add_argument("--runs", type=int, default=1, help="Antal mätta pass per bild")
+    ap.add_argument("--warmup", type=int, default=10, help="Warmup passes")
+    ap.add_argument("--runs", type=int, default=1, help="Runs per image")
     ap.add_argument("--intra", type=int, default=0, help="intra_op_num_threads (0=auto)")
     ap.add_argument("--inter", type=int, default=0, help="inter_op_num_threads (0=auto)")
     args = ap.parse_args()
@@ -287,3 +288,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
