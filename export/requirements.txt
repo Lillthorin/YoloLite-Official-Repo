@@ -1,3 +1,5 @@
-onnx
-onnxruntime
-onnxsim
+onnx>=1.19.0
+onnxruntime>=1.15.1
+onnx-simplifier>=0.4.36
+numpy>=2.2.6
+opencv-python>=4.12
