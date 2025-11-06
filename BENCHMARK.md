@@ -34,6 +34,7 @@ yololite_m and yololite_n refers to the models under models_v2 folder.
 Some datasets are still in progress, table will be updated.
 
 Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
+    python tools/train.py --model "configs/models/edge_{x}.yaml" --batch_size 8 --epochs 100 
 
 | Dataset               | YOLOv5 | YOLOv7 | edge_m | edge_n | yololite_m | yololite_n |
 |-----------------------|:------:|:------:|:------:|:------:|:------:|:------:|
@@ -108,6 +109,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
