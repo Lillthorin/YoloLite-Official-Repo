@@ -1,291 +1,330 @@
-import argparse, os, sys, json, time
+# tools/export_onnx.py
+import argparse
+import os
+import sys
 from pathlib import Path
-import numpy as np
-import cv2
-import onnxruntime as ort
+from typing import Tuple, List
 
-# ============ Utils ============
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# ========= sys.path & imports =========
+ROOT = os.getcwd()
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
+
+# Importera dina modelklasser (samma som i train/infer)
+from scripts.model.model_v2 import YOLOLiteMS, YOLOLiteMS_CPU  # ändra vid behov
+
+
+# ========= util: prints =========
+def log(msg: str, verbose: bool):
+    print(msg, flush=True) if verbose else None
+
+def must(msg: str):
+    print(msg, flush=True)
+
+
+# ========= run-dir =========
 def next_run_dir(base: str) -> str:
-    p = Path(base); p.mkdir(parents=True, exist_ok=True)
+    root = Path(base)
+    root.mkdir(parents=True, exist_ok=True)
     n = 1
     while True:
-        cand = p / str(n)
+        cand = root / str(n)
         try:
-            cand.mkdir()
+            cand.mkdir(parents=False, exist_ok=False)
             return str(cand.resolve())
         except FileExistsError:
             n += 1
 
-def letterbox(im, new_size=640, color=(114,114,114)):
-    h, w = im.shape[:2]
-    scale = min(new_size / h, new_size / w)
-    nh, nw = int(round(h * scale)), int(round(w * scale))
-    im_resized = cv2.resize(im, (nw, nh), interpolation=cv2.INTER_LINEAR)
-    top = (new_size - nh) // 2
-    bottom = new_size - nh - top
-    left = (new_size - nw) // 2
-    right = new_size - nw - left
-    im_padded = cv2.copyMakeBorder(im_resized, top, bottom, left, right,
-                                   cv2.BORDER_CONSTANT, value=color)
-    return im_padded, scale, (left, top)
 
-def nms_np(boxes, scores, iou_th=0.5, max_det=300):
-    if len(boxes) == 0:
-        return np.array([], dtype=np.int64)
-    x1, y1, x2, y2 = boxes.T
-    areas = (x2 - x1).clip(0) * (y2 - y1).clip(0)
-    order = scores.argsort()[::-1]
-    keep = []
-    while order.size > 0:
-        i = order[0]
-        keep.append(i)
-        if len(keep) >= max_det:
-            break
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
-        w = (xx2 - xx1).clip(0)
-        h = (yy2 - yy1).clip(0)
-        inter = w * h
-        iou = inter / (areas[i] + areas[order[1:]] - inter + 1e-6)
-        order = order[1:][iou <= iou_th]
-    return np.array(keep, dtype=np.int64)
+# ========= build model from meta/config =========
+def build_model_from_meta(meta: dict) -> nn.Module:
+    cfg  = meta.get("config", {}) or {}
+    mcfg = cfg.get("model", {}) or {}
+    tcfg = cfg.get("training", {}) or {}
 
-def draw(img, boxes, scores, classes, names):
-    out = img.copy()
-    for b, s, c in zip(boxes, scores, classes):
-        x1, y1, x2, y2 = map(int, b.tolist())
-        name = names[int(c)] if 0 <= int(c) < len(names) else str(int(c))
-        cv2.rectangle(out, (x1,y1), (x2,y2), (0,255,0), 2)
-        cv2.putText(out, f"{name} {s:.2f}", (x1, max(0, y1-5)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1)
-    return out
+    arch        = (meta.get("arch") or mcfg.get("arch") or "YOLOLiteMS").lower()
+    backbone    = (meta.get("backbone") or mcfg.get("backbone") or "resnet18")
+    num_classes = int(meta.get("num_classes") or mcfg.get("num_classes") or 80)
 
-def build_session(model_path, providers, intra, inter):
-    so = ort.SessionOptions()
-    so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    if intra is not None and intra >= 0:
-        so.intra_op_num_threads = int(intra)
-    if inter is not None and inter >= 0:
-        so.inter_op_num_threads = int(inter)
+    fpn_channels   = int(mcfg.get("fpn_channels", 128))
+    depth_multiple = float(mcfg.get("depth_multiple", 1.0))
+    width_multiple = float(mcfg.get("width_multiple", 1.0))
+    head_depth     = int(mcfg.get("head_depth", 1))
 
-    prov = []
-    p = providers.lower()
-    if p == "cuda":
-        prov = ["CUDAExecutionProvider", "CPUExecutionProvider"]
-    elif p == "tensorrt":
-        # fall back chain
-        prov = ["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"]
+    img_size = int(tcfg.get("img_size", meta.get("img_size", 640)))
+    use_p6 = True if img_size > 640 else False
+    num_anchors_per_level = (1, 1, 1)
+
+    if arch == "yololitems":
+        model = YOLOLiteMS(
+            backbone=backbone,
+            num_classes=num_classes,
+            fpn_channels=fpn_channels,
+            width_multiple=width_multiple,
+            depth_multiple=depth_multiple,
+            head_depth=head_depth,
+            num_anchors_per_level=num_anchors_per_level,
+            use_p6=use_p6,
+        )
+    elif arch == "yololitems_cpu":
+        model = YOLOLiteMS_CPU(
+            backbone=backbone,
+            num_classes=num_classes,
+            fpn_channels=fpn_channels,
+            depth_multiple=depth_multiple,
+            width_multiple=width_multiple,
+            head_depth=head_depth,
+            num_anchors_per_level=num_anchors_per_level,
+            use_p6=use_p6,
+        )
     else:
-        prov = ["CPUExecutionProvider"]
-    return ort.InferenceSession(str(model_path), sess_options=so, providers=prov)
+        raise ValueError(f"Okänd arch i meta/config: {arch}")
+    return model
 
-# ============ Main ============
+
+# ========= load ckpt =========
+def load_model_from_ckpt(weights: str, device: torch.device, verbose: bool) -> Tuple[nn.Module, dict]:
+    if not os.path.isfile(weights):
+        raise FileNotFoundError(f"Viktfil hittas inte: {weights}")
+    must(f"• Läser checkpoint: {weights}")
+    ckpt = torch.load(weights, map_location=device)
+    if not (isinstance(ckpt, dict) and "state_dict" in ckpt and "meta" in ckpt):
+        raise RuntimeError("Checkpoint saknar 'state_dict'/'meta' – spara via save_checkpoint_state(...).")
+    meta = ckpt["meta"] or {}
+    log(f"  meta.keys: {list(meta.keys())}", verbose)
+    model = build_model_from_meta(meta)
+    missing, unexpected = model.load_state_dict(ckpt["state_dict"], strict=False)
+    if missing:    must(f"  [load_state_dict] saknade nycklar: {len(missing)}")
+    if unexpected: must(f"  [load_state_dict] oväntade nycklar: {len(unexpected)}")
+    model.to(device).eval()
+    must(f"• Modell byggd: arch={meta.get('arch')} backbone={meta.get('backbone')} nc={meta.get('num_classes')}")
+    return model, meta
+
+
+# ========= decoded wrapper (utan NMS) =========
+class AFDecode(nn.Module):
+    def __init__(self, img_size: int, center_mode: str = "v8", wh_mode: str = "softplus"):
+        super().__init__()
+        self.img_size = int(img_size)
+        self.center_mode = center_mode
+        self.wh_mode = wh_mode
+
+    @staticmethod
+    def _xywh_to_xyxy(xywh: torch.Tensor) -> torch.Tensor:
+        x, y, w, h = xywh.unbind(-1)
+        return torch.stack([x - w * 0.5, y - h * 0.5, x + w * 0.5, y + h * 0.5], dim=-1)
+
+    def _decode_level(self, p: torch.Tensor):
+        # p: [B,A,S,S,D] eller [B,S,S,D] (tolkas A=1)
+        if p.dim() == 4:
+            p = p.unsqueeze(1)  # [B,1,S,S,D]
+        B, A, S, _, D = p.shape
+        cell = float(self.img_size) / float(S)
+
+        gy, gx = torch.meshgrid(torch.arange(S, device=p.device),
+                                torch.arange(S, device=p.device), indexing="ij")
+        gx = gx.float(); gy = gy.float()
+
+        tx = p[..., 0]; ty = p[..., 1]
+        tw = p[..., 2]; th = p[..., 3]
+        tobj = p[..., 4]
+        tcls = p[..., 5:]
+
+        if self.center_mode == "v8":
+            px = ((tx.sigmoid() * 2.0 - 0.5) + gx) * cell
+            py = ((ty.sigmoid() * 2.0 - 0.5) + gy) * cell
+        else:
+            px = (tx.sigmoid() + gx) * cell
+            py = (ty.sigmoid() + gy) * cell
+
+        if   self.wh_mode == "v8":
+            pw = (tw.sigmoid() * 2).pow(2) * cell
+            ph = (th.sigmoid() * 2).pow(2) * cell
+        elif self.wh_mode == "softplus":
+            pw = F.softplus(tw) * cell
+            ph = F.softplus(th) * cell
+        else:
+            pw = tw.clamp(-4, 4).exp() * cell
+            ph = th.clamp(-4, 4).exp() * cell
+
+        xyxy = self._xywh_to_xyxy(torch.stack([px, py, pw, ph], dim=-1))
+        xyxy[..., 0::2] = xyxy[..., 0::2].clamp(0, self.img_size - 1)
+        xyxy[..., 1::2] = xyxy[..., 1::2].clamp(0, self.img_size - 1)
+
+        xyxy = xyxy.reshape(B, -1, 4)
+        obj  = tobj.reshape(B, -1, 1)
+        cls  = tcls.reshape(B, -1, tcls.shape[-1])
+        return xyxy, obj, cls
+
+    def forward(self, preds):
+        if not isinstance(preds, (list, tuple)):
+            preds = [preds]
+        boxes, objs, clss = [], [], []
+        for p in preds:
+            b, o, c = self._decode_level(p)
+            boxes.append(b); objs.append(o); clss.append(c)
+        boxes = torch.cat(boxes, dim=1)
+        obj   = torch.cat(objs,  dim=1)
+        cls   = torch.cat(clss,  dim=1)
+        return boxes, obj, cls
+
+
+# ========= main/export =========
 def main():
     ap = argparse.ArgumentParser()
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--model", required=True, help="Path till decoded .onnx")
-    ap.add_argument("--img", default=None)
-    ap.add_argument("--img_dir", default=None)
-    ap.add_argument("--img_size", type=int, default=640, help="ONNX decoded img_size")
-    ap.add_argument("--conf", type=float, default=0.3)
-    ap.add_argument("--iou", type=float, default=0.3)
-    ap.add_argument("--max_det", type=int, default=300)
-    ap.add_argument("--no_letterbox", action="store_true")
-    ap.add_argument("--save_txt", action="store_true")
-    ap.add_argument("--names", default=None, help="csv list or classes.txt file")
-    # --- nya benchmark-flaggar ---
-    ap.add_argument("--providers", default="cpu", choices=["cpu","cuda","tensorrt"])
-    ap.add_argument("--warmup", type=int, default=10, help="Warmup passes")
-    ap.add_argument("--runs", type=int, default=1, help="Runs per image")
-    ap.add_argument("--intra", type=int, default=0, help="intra_op_num_threads (0=auto)")
-    ap.add_argument("--inter", type=int, default=0, help="inter_op_num_threads (0=auto)")
+    ap.add_argument("--weights", required=True, help="Path till checkpoint (.pt/.pth) sparad via save_checkpoint_state(...)")
+    ap.add_argument("--out", default=None, help="Utfil (.onnx). Default: runs/export/<n>/model(.onnx|_decoded.onnx)")
+    ap.add_argument("--img-size", type=int, default=640, help="Kvadratisk input (H=W)")
+    ap.add_argument("--device", default="cpu", help="'cpu' eller t.ex. '0'")
+    ap.add_argument("--opset", type=int, default=17)
+    ap.add_argument("--half", action="store_true", help="FP16 (kräver CUDA för dummy)")
+    ap.add_argument("--simplify", action="store_true", help="Kör onnxsim efter export")
+    ap.add_argument("--dynamic-batch", action="store_true", help="Dynamisk batch-dimension")
+    ap.add_argument("--dynamic-shape", action="store_true", help="Dynamisk H/W (endast format=raw)")
+    ap.add_argument("--format", choices=["raw", "decoded"], default="decoded",
+                    help="raw = huvudutdata per nivå; decoded = boxes/obj/cls (utan NMS)")
+    ap.add_argument("--center-mode", default="v8", choices=["v8", "sigmoid"], help="Decode-center (decoded)")
+    ap.add_argument("--wh-mode", default="softplus", choices=["softplus", "v8", "exp"], help="Decode-wh (decoded)")
+    ap.add_argument("--verbose", action="store_true", help="Mer utskrift")
     args = ap.parse_args()
 
-    # class names
-    names = []
-    if args.names and Path(args.names).exists():
-        with open(args.names, "r", encoding="utf-8") as f:
-            names = [ln.strip() for ln in f if ln.strip()]
-    elif args.names and "," in args.names:
-        names = [s.strip() for s in args.names.split(",")]
+    # device
+    device = torch.device("cuda:0" if args.device != "cpu" and torch.cuda.is_available() else "cpu")
+    must(f"• Device: {device}")
+
+    # ladda modell
+    model, meta = load_model_from_ckpt(args.weights, device, verbose=args.verbose)
+
+    # img_size
+    meta_img_size = int(meta.get("img_size", args.img_size))
+    img_size = int(args.img_size) if args.img_size else meta_img_size
+    must(f"• img_size: {img_size}")
+
+    if args.half and device.type == "cuda":
+        model.half()
+        must("• FP16: ON")
+
+    # dummy input
+    B = 1
+    H = W = img_size
+    dtype = torch.float16 if (args.half and device.type == "cuda") else torch.float32
+    dummy = torch.zeros((B, 3, H, W), device=device, dtype=dtype)
+
+    # torrkörning (forward) för att se att något händer
+    with torch.inference_mode():
+        y = model(dummy)
+    if isinstance(y, (list, tuple)):
+        must(f"• Torrkörning OK: {len(y)} utgång(ar) (raw head-nivåer).")
     else:
-        names = [str(i) for i in range(80)]
+        must("• Torrkörning OK: 1 utgång (monolitisk).")
 
-    # ort session
-    sess = build_session(args.model, args.providers, args.intra, args.inter)
-    in_name = sess.get_inputs()[0].name
-    out_names = [o.name for o in sess.get_outputs()]  # ["boxes_xyxy","obj_logits","cls_logits"]
+    export_dir = next_run_dir("runs/export")
+    out_path = Path(args.out) if args.out else Path(export_dir) / ("model_decoded.onnx" if args.format == "decoded" else "model.onnx")
+    must(f"• Export-katalog: {export_dir}")
+    must(f"• Skriver: {out_path}")
 
-    run_dir = next_run_dir("runs/onnx_infer/decoded")
-    (Path(run_dir)/"labels").mkdir(parents=True, exist_ok=True)
-    (Path(run_dir)/"json").mkdir(parents=True, exist_ok=True)
+    # wrappers
+    if args.format == "raw":
+        class RawWrapper(nn.Module):
+            def __init__(self, core):
+                super().__init__()
+                self.core = core
+            def forward(self, x):
+                y = self.core(x)
+                if isinstance(y, (list, tuple)):
+                    return tuple(y)
+                return (y,)
 
-    MEAN = np.array([0.485, 0.456, 0.406], np.float32)
-    STD  = np.array([0.229, 0.224, 0.225], np.float32)
+        wrapper = RawWrapper(model)
 
-    # gather paths
-    if args.img and Path(args.img).exists():
-        paths = [args.img]
-    elif args.img_dir and Path(args.img_dir).exists():
-        exts = (".jpg",".jpeg",".png",".bmp")
-        paths = sorted([str(p) for p in Path(args.img_dir).glob("*") if p.suffix.lower() in exts])
-    else:
-        raise SystemExit("Ange --img eller --img_dir")
+        # Hämta output layout och namn
+        with torch.inference_mode():
+            outs = wrapper(dummy)
+        output_names = [f"p{i}" for i in range(len(outs))]
+        log(f"  output_names={output_names}", args.verbose)
 
-    # Warmup (syntetiskt eller första bilden)
-    dummy = np.random.rand(1,3,args.img_size,args.img_size).astype(np.float32)
-    for _ in range(max(0, args.warmup)):
-        _ = sess.run(out_names, {in_name: dummy})
+        dynamic_axes = None
+        if args.dynamic_batch or args.dynamic_shape:
+            dynamic_axes = {"images": {0: "batch"}}
+            for name in output_names:
+                dynamic_axes[name] = {0: "batch"}
+            if args.dynamic_shape:
+                dynamic_axes["images"][2] = "height"
+                dynamic_axes["images"][3] = "width"
+                must("• Dynamic shape: ON (råt läge)")
 
-    # timing accumulators
-    rows = []  # per-bild/loop rader för CSV
-    pre_times = []; infer_times = []; post_times = []; total_times = []
+        # Export
+        try:
+            with torch.no_grad():
+                torch.onnx.export(
+                    wrapper,
+                    dummy,
+                    str(out_path),
+                    opset_version=args.opset,
+                    input_names=["images"],
+                    output_names=output_names,
+                    dynamic_axes=dynamic_axes,
+                    do_constant_folding=True,
+                )
+            must("✓ ONNX export (raw) klar")
+        except Exception as e:
+            raise RuntimeError(f"ONNX-export (raw) misslyckades: {e}") from e
 
-    for p in paths:
-        img0 = cv2.imread(p)
-        if img0 is None:
-            print(f"! kunde inte läsa {p}")
-            continue
+    else:  # decoded
+        if args.dynamic_shape:
+            must("! Ignorerar --dynamic-shape i decoded-läge (kräver fast img_size).")
 
-        # Preprocess separat för mätning
-        t_pre0 = time.perf_counter()
-        if args.no_letterbox:
-            lb = cv2.resize(img0, (args.img_size, args.img_size), interpolation=cv2.INTER_LINEAR)
-            scale = min(args.img_size/img0.shape[0], args.img_size/img0.shape[1])
-            padx = pady = 0
-        else:
-            lb, scale, (padx, pady) = letterbox(img0, args.img_size)
+        class DecodedWrapper(nn.Module):
+            def __init__(self, core, img_size: int, center_mode: str, wh_mode: str):
+                super().__init__()
+                self.core = core
+                self.decode = AFDecode(img_size=img_size, center_mode=center_mode, wh_mode=wh_mode)
+            def forward(self, x):
+                y = self.core(x)
+                boxes, obj, cls = self.decode(y)
+                return boxes, obj, cls
 
-        im = cv2.cvtColor(lb, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-        im = (im - MEAN) / STD
-        im = np.transpose(im, (2,0,1))[None]  # [1,3,H,W]
-        t_pre1 = time.perf_counter()
+        wrapper = DecodedWrapper(model, img_size=img_size, center_mode=args.center_mode, wh_mode=args.wh_mode)
+        output_names = ["boxes_xyxy", "obj_logits", "cls_logits"]
+        dynamic_axes = {"images": {0: "batch"},
+                        "boxes_xyxy": {0: "batch"}, "obj_logits": {0: "batch"}, "cls_logits": {0: "batch"}}
 
-        # Multiple measured runs per image
-        for run_idx in range(max(1, args.runs)):
-            t_inf0 = time.perf_counter()
-            boxes, obj_log, cls_log = sess.run(out_names, {in_name: im})
-            t_inf1 = time.perf_counter()
+        try:
+            with torch.no_grad():
+                torch.onnx.export(
+                    wrapper,
+                    dummy,
+                    str(out_path),
+                    opset_version=args.opset,
+                    input_names=["images"],
+                    output_names=output_names,
+                    dynamic_axes=dynamic_axes,
+                    do_constant_folding=True,
+                )
+            must("✓ ONNX export (decoded) klar")
+        except Exception as e:
+            raise RuntimeError(f"ONNX-export (decoded) misslyckades: {e}") from e
 
-            # Postprocess
-            t_post0 = time.perf_counter()
-            obj = 1/(1+np.exp(-obj_log[...,0]))  # [1,N]
-            if cls_log.shape[-1] > 1:
-                cls_sig = 1/(1+np.exp(-cls_log[0]))          # [N,C]
-                confs = cls_sig.max(axis=-1)                 # [N]
-                cls_id = cls_sig.argmax(axis=-1).astype(np.int64)
-                scores = obj[0] * confs
+    # simplify
+    if args.simplify:
+        try:
+            import onnx, onnxsim
+            model_onnx = onnx.load(str(out_path))
+            model_simplified, ok = onnxsim.simplify(model_onnx)
+            if ok:
+                onnx.save(model_simplified, str(out_path))
+                must("✓ ONNX simplified")
             else:
-                cls_id = np.zeros_like(obj[0], dtype=np.int64)
-                scores = obj[0]
+                must("! onnxsim returnerade ok=False (sparar osimplifierad)")
+        except Exception as e:
+            must(f"! onnxsim misslyckades: {e}")
 
-            m = scores > args.conf
-            boxes_p = boxes[0][m]
-            scores_p = scores[m]
-            cls_p = cls_id[m]
-            final_b, final_s, final_c = [], [], []
-            for c in np.unique(cls_p):
-                mc = (cls_p == c)
-                keep = nms_np(boxes_p[mc], scores_p[mc], args.iou, args.max_det)
-                if keep.size:
-                    final_b.append(boxes_p[mc][keep])
-                    final_s.append(scores_p[mc][keep])
-                    final_c.append(np.full((keep.size,), int(c), dtype=np.int64))
+    must("Klart.")
 
-            if final_b:
-                boxes_pad = np.concatenate(final_b, 0)
-                scores_pad= np.concatenate(final_s, 0)
-                classes   = np.concatenate(final_c, 0)
-            else:
-                boxes_pad = np.zeros((0,4), np.float32)
-                scores_pad= np.zeros((0,), np.float32)
-                classes   = np.zeros((0,), np.int64)
-
-            # back-map till original
-            boxes_px = boxes_pad.copy()
-            boxes_px[:,[0,2]] -= padx
-            boxes_px[:,[1,3]] -= pady
-            boxes_px /= max(scale, 1e-6)
-            h0, w0 = img0.shape[:2]
-            boxes_px[:,[0,2]] = np.clip(boxes_px[:,[0,2]], 0, w0-1)
-            boxes_px[:,[1,3]] = np.clip(boxes_px[:,[1,3]], 0, h0-1)
-            t_post1 = time.perf_counter()
-
-            pre_ms   = (t_pre1 - t_pre0)*1000.0
-            inf_ms   = (t_inf1 - t_inf0)*1000.0
-            post_ms  = (t_post1 - t_post0)*1000.0
-            total_ms = (t_post1 - t_pre0)*1000.0
-
-            pre_times.append(pre_ms); infer_times.append(inf_ms); post_times.append(post_ms); total_times.append(total_ms)
-            rows.append({
-                "image": p, "run": run_idx+1, "pre_ms": round(pre_ms,3),
-                "infer_ms": round(inf_ms,3), "post_ms": round(post_ms,3),
-                "total_ms": round(total_ms,3)
-            })
-
-        # draw & save på sista körningen för bilden
-        vis = img0.copy()
-        vis = draw(vis, boxes_px, scores_pad, classes, names)
-        out_img = str(Path(run_dir)/f"{Path(p).stem}_pred.jpg")
-        cv2.imwrite(out_img, vis)
-        if args.save_txt and boxes_px.shape[0] > 0:
-            h, w = img0.shape[:2]
-            xyxy = boxes_px
-            cx = (xyxy[:,0]+xyxy[:,2])/(2*w)
-            cy = (xyxy[:,1]+xyxy[:,3])/(2*h)
-            bw = (xyxy[:,2]-xyxy[:,0])/w
-            bh = (xyxy[:,3]-xyxy[:,1])/h
-            with open(Path(run_dir)/"labels"/f"{Path(p).stem}.txt","w",encoding="utf-8") as f:
-                for c,x,y,ww,hh,s in zip(classes,cx,cy,bw,bh,scores_pad):
-                    f.write(f"{int(c)} {x:.6f} {y:.6f} {ww:.6f} {hh:.6f} {s:.4f}\n")
-
-        # json
-        rec = []
-        for b,s,c in zip(boxes_px.tolist(), scores_pad.tolist(), classes.tolist()):
-            name = names[c] if 0 <= c < len(names) else str(c)
-            rec.append({"bbox_xyxy":[float(x) for x in b], "score":float(s), "class_id":int(c), "class_name":name})
-        with open(Path(run_dir)/"json"/f"{Path(p).stem}.json","w",encoding="utf-8") as f:
-            json.dump({"image": p, "detections": rec}, f, ensure_ascii=False, indent=2)
-
-        print(f"✓ {out_img}")
-
-    # --- sammanfattning ---
-    def stats(x):
-        x = np.array(x, dtype=np.float64)
-        return dict(mean=float(np.mean(x)), std=float(np.std(x)),
-                    p50=float(np.percentile(x,50)), p90=float(np.percentile(x,90)), p95=float(np.percentile(x,95)))
-    summary = {
-        "providers": args.providers,
-        "warmup": args.warmup,
-        "runs_per_image": args.runs,
-        "counts": len(rows),
-        "pre_ms": stats(pre_times),
-        "infer_ms": stats(infer_times),
-        "post_ms": stats(post_times),
-        "total_ms": stats(total_times),
-        "throughput_images_per_s": (1000.0/np.mean(total_times)) if total_times else None
-    }
-
-    # skriv ut och spara
-    print("\n=== Inference timing (ms) ===")
-    for k in ["pre_ms","infer_ms","post_ms","total_ms"]:
-        s = summary[k]
-        print(f"{k:9s} mean {s['mean']:.2f} | std {s['std']:.2f} | p50 {s['p50']:.2f} | p90 {s['p90']:.2f} | p95 {s['p95']:.2f}")
-    if summary["throughput_images_per_s"]:
-        print(f"Throughput ≈ {summary['throughput_images_per_s']:.2f} img/s")
-
-    # save files
-    with open(Path(run_dir)/"timings.json","w",encoding="utf-8") as f:
-        json.dump(summary, f, indent=2)
-    with open(Path(run_dir)/"timings.csv","w",encoding="utf-8") as f:
-        f.write("image,run,pre_ms,infer_ms,post_ms,total_ms\n")
-        for r in rows:
-            f.write(f"{r['image']},{r['run']},{r['pre_ms']},{r['infer_ms']},{r['post_ms']},{r['total_ms']}\n")
-
-    print(f"\nAllt sparat i: {run_dir}")
 
 if __name__ == "__main__":
     main()
-
