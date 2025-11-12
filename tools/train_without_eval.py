@@ -345,11 +345,6 @@ if __name__ == "__main__":
             scheduler.step()
 
         # -------------------- EVAL --------------------
-        model_eval = model
-        model_eval.eval()
-
-        v_running = 0.0
-        vb = vo = vc = 0.0
 
         save_path = os.path.join(weight_folder, f"epoch_{epoch+1}.pt")
         model_eval_cpu = model_eval.to("cpu").eval()
@@ -361,11 +356,15 @@ if __name__ == "__main__":
             f"Epoch {epoch+1}/{epochs} | "
             f"train {avg_train:.4f} | "
         )
+    model.eval()
+    evaluate_model(model=model, val_loader=val_loader, log_dir=log_dir, NUM_CLASSES=NUM_CLASSES, DEVICE=DEVICE, IMG_SIZE=IMG_SIZE, batch_size=batch_size)
+
+
     
     
     
     
-    
+
 
 
 
