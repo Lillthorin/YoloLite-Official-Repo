@@ -121,8 +121,6 @@ if __name__ == "__main__":
             shuffle=False,
             num_workers=0,
             pin_memory=True,
-            persistent_workers=(nw > 0),
-            prefetch_factor=None,
             collate_fn=yolo_collate,         # <-- INTE lambda
             drop_last=False,
         )
@@ -547,6 +545,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
