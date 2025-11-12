@@ -122,7 +122,7 @@ if __name__ == "__main__":
             num_workers=max(1, nw//2),
             pin_memory=True,
             persistent_workers=(nw > 0),
-            prefetch_factor=2 if nw > 0 else None,
+            prefetch_factor=None,
             collate_fn=yolo_collate,         # <-- INTE lambda
             drop_last=False,
         )
@@ -547,6 +547,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
