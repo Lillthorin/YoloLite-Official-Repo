@@ -108,7 +108,7 @@ if __name__ == "__main__":
     train_ds,
     batch_size=config["training"]["batch_size"],
     shuffle=True,
-    num_workers=nw,
+    num_workers=0,
     pin_memory=True,
     persistent_workers=(nw > 0),
     prefetch_factor=2 if nw > 0 else None,
@@ -386,7 +386,7 @@ if __name__ == "__main__":
                 # Bygg COCO GT/DT
                 
                 batch_dets = _decode_batch_to_coco_dets(
-                    preds, img_size=IMG_SIZE, conf_th=0.001, iou_th=0.65, add_one=True
+                    preds[:300], img_size=IMG_SIZE, conf_th=0.001, iou_th=0.65, add_one=True
                 )
 
                 for b in range(B):
@@ -547,6 +547,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
