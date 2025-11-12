@@ -50,7 +50,8 @@ training:
   use_p6: false
   resume:
   save_by: 
-  pretrained: true
+  pretrained: false
   
+
 
 
