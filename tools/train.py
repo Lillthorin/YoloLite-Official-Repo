@@ -443,6 +443,7 @@ if __name__ == "__main__":
         coco_stats = _coco_eval_from_lists(
             coco_images, coco_anns, coco_dets, iouType="bbox", num_classes=NUM_CLASSES
         )
+        coco_images, coco_anns, coco_dets = [], [], []
         elapsed = time.time() - start
        
         # --------- Loggning till filer (ingen print-spam) ----------
@@ -545,6 +546,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
