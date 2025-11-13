@@ -384,7 +384,7 @@ if __name__ == "__main__":
                 # Bygg COCO GT/DT
                 
                 batch_dets = _decode_batch_to_coco_dets(
-                    preds, img_size=IMG_SIZE, conf_th=0.001, iou_th=0.65, add_one=True
+                    preds, img_size=IMG_SIZE, conf_th=0.1, iou_th=0.65, add_one=True
                 )
 
                 for b in range(B):
@@ -546,6 +546,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
