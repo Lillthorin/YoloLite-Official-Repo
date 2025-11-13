@@ -374,7 +374,7 @@ if __name__ == "__main__":
                 vo += float(vdict['obj']) / B
                 vc += float(vdict['cls']) / B
                 v_running = vb + vo + vc
-                if i == t:
+                if i == t and epoch+1 > 5:
                     save_val_debug_anchorfree(
                         imgs, preds, epoch, out_dir=log_dir,
                         img_size=IMG_SIZE, conf_th=val_thresh, iou_th=0.3,
@@ -384,7 +384,7 @@ if __name__ == "__main__":
                 # Bygg COCO GT/DT
                 
                 batch_dets = _decode_batch_to_coco_dets(
-                    preds[:300], img_size=IMG_SIZE, conf_th=0.001, iou_th=0.65, add_one=True
+                    preds, img_size=IMG_SIZE, conf_th=0.001, iou_th=0.65, add_one=True
                 )
 
                 for b in range(B):
@@ -545,6 +545,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
