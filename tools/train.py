@@ -87,19 +87,21 @@ if __name__ == "__main__":
     IMG_SIZE = int(config["training"]["img_size"])
     use_augment = bool(config["training"]["augment"])   
     # Datasets & loaders
+    val_resize = 1.0 if config["training"]["resize"] else 0.0
+    train_resize = 1.0 if config["training"]["resize"] else 0.3
     train_ds = YoloDataset(
         config["dataset"]["train_images"],
         config["dataset"]["train_labels"],
         img_size=IMG_SIZE,
         is_train=True if use_augment else False,
-        transforms=get_base_transform(IMG_SIZE) if use_augment else get_val_transform(IMG_SIZE)
+        transforms=get_base_transform(IMG_SIZE, train_resize) if use_augment else get_val_transform(IMG_SIZE)
     )
     val_ds = YoloDataset(
         config["dataset"]["val_images"],
         config["dataset"]["val_labels"],
         img_size=IMG_SIZE,
         is_train=False,
-        transforms=get_val_transform(IMG_SIZE)
+        transforms=get_val_transform(IMG_SIZE, val_resize)
     )
     
 
