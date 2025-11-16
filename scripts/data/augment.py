@@ -51,7 +51,7 @@ def letterbox_block(img_size):
     ]
 
 
-def get_base_transform(img_size=416):
+def get_base_transform(img_size=416, resize=0.0):
     """
     Stabil, industri-vänlig augmentering (letterbox i både train/val).
     Robust mot Albumentations versionsskillnader via wrappers ovan.
@@ -60,7 +60,7 @@ def get_base_transform(img_size=416):
         [
             A.HorizontalFlip(p=0.3),
             A.VerticalFlip(p=0.3),
-            A.Resize(img_size,img_size, interpolation=cv2.INTER_LINEAR, p=0.3),
+            A.Resize(img_size,img_size, interpolation=cv2.INTER_LINEAR, p=resize),
             make_affine(
                 rotate=(-20, 20),
                 shear=(-10, 10),
@@ -100,7 +100,7 @@ def get_base_transform(img_size=416):
         p=1.0
     )
 
-def get_strong_transform(img_size):
+def get_strong_transform(img_size, resize=0.0):
     return A.Compose([
         # A.Resize(imgsz, imgsz, p=1),
         A.HorizontalFlip(p=0.5),
@@ -150,9 +150,10 @@ def get_strong_transform(img_size):
         is_check_shapes=True,
         p=1.0
     )
-def get_val_transform(img_size=416):
+def get_val_transform(img_size=416, resize=0.0):
     return A.Compose(
         [
+            A.Resize(img_size, img_size, interpolation=cv2.INTER_LINEAR, p=resize),
             A.LongestMaxSize(max_size=img_size),
             make_pad(img_size),
             A.Normalize(mean=(0.485, 0.456, 0.406),
