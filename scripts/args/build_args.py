@@ -254,6 +254,7 @@ def build_argparser() -> argparse.ArgumentParser:
     ap.add_argument("--augment", default=True, action=argparse.BooleanOptionalAction)
     ap.add_argument("--use_p6",  default=False, action=argparse.BooleanOptionalAction)
     ap.add_argument("--use_p2",  default=False, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--use_resize",  default=False, action=argparse.BooleanOptionalAction, help="Use resize instead of letterbox")
     ap.add_argument("--resume", type=str, default=None, help="Resume training from last checkpoint if available")
     ap.add_argument("--lr", type=float, default=None, help="Override learning rate if set")
     ap.add_argument("--save_every", type=int, default=25, help="Save every x epoch")
@@ -278,6 +279,8 @@ def apply_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dict[st
         config["training"]["use_p6"] = args.use_p6
     if args.use_p2 is not None:
         config["training"]["use_p2"] = args.use_p2
+    if args.use_resize is not None:
+        config["training"]["resize"] = args.use_resize
     if args.augment is not None:
         config["training"]["augment"] = args.augment  # redan bool
     if args.resume is not None:
