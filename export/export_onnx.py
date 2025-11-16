@@ -176,20 +176,20 @@ class AFDecode(nn.Module):
 # ========= main/export =========
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--weights", required=True, help="Path till checkpoint (.pt/.pth) sparad via save_checkpoint_state(...)")
-    ap.add_argument("--out", default=None, help="Utfil (.onnx). Default: runs/export/<n>/model(.onnx|_decoded.onnx)")
-    ap.add_argument("--img-size", type=int, default=640, help="Kvadratisk input (H=W)")
-    ap.add_argument("--device", default="cpu", help="'cpu' eller t.ex. '0'")
+    ap.add_argument("--weights", required=True, help="Path to checkpoint (.pt/.pth)")
+    ap.add_argument("--out", default=None, help="save path (.onnx). Default: runs/export/<n>/model(.onnx|_decoded.onnx)")
+    ap.add_argument("--img-size", type=int, default=640, help="(H=W)")
+    ap.add_argument("--device", default="cpu", help="'cpu' or cuda. '0'")
     ap.add_argument("--opset", type=int, default=17)
-    ap.add_argument("--half", action="store_true", help="FP16 (kräver CUDA för dummy)")
-    ap.add_argument("--simplify", action="store_true", help="Kör onnxsim efter export")
-    ap.add_argument("--dynamic-batch", action="store_true", help="Dynamisk batch-dimension")
-    ap.add_argument("--dynamic-shape", action="store_true", help="Dynamisk H/W (endast format=raw)")
+    ap.add_argument("--half", action="store_true", help="FP16 (requires CUDA for dummy)")
+    ap.add_argument("--simplify", action="store_true", help=" onnxsim after export")
+    ap.add_argument("--dynamic-batch", action="store_true", help="Dynamic batch-dimension")
+    ap.add_argument("--dynamic-shape", action="store_true", help="Dynamic H/W (only format=raw)")
     ap.add_argument("--format", choices=["raw", "decoded"], default="decoded",
-                    help="raw = huvudutdata per nivå; decoded = boxes/obj/cls (utan NMS)")
+                    help="raw = raw data per nivå; decoded = boxes/obj/cls")
     ap.add_argument("--center-mode", default="v8", choices=["v8", "sigmoid"], help="Decode-center (decoded)")
     ap.add_argument("--wh-mode", default="softplus", choices=["softplus", "v8", "exp"], help="Decode-wh (decoded)")
-    ap.add_argument("--verbose", action="store_true", help="Mer utskrift")
+    ap.add_argument("--verbose", action="store_true", help="Detailed logg")
     args = ap.parse_args()
 
     # device
