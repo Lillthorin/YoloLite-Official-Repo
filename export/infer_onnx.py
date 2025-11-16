@@ -150,12 +150,17 @@ def main():
 
         # Preprocess separat för mätning
         t_pre0 = time.perf_counter()
+        h0, w0 = img0.shape[:2]
+
         if args.no_letterbox:
+            # Ren warp till kvadrat – ingen padding
             lb = cv2.resize(img0, (args.img_size, args.img_size), interpolation=cv2.INTER_LINEAR)
-            scale = min(args.img_size/img0.shape[0], args.img_size/img0.shape[1])
             padx = pady = 0
+            scale = None  # används inte i detta fall
         else:
+            # Klassisk letterbox (uniform scale + pad)
             lb, scale, (padx, pady) = letterbox(img0, args.img_size)
+
 
         im = cv2.cvtColor(lb, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         im = (im - MEAN) / STD
@@ -204,12 +209,26 @@ def main():
 
             # back-map till original
             boxes_px = boxes_pad.copy()
-            boxes_px[:,[0,2]] -= padx
-            boxes_px[:,[1,3]] -= pady
-            boxes_px /= max(scale, 1e-6)
             h0, w0 = img0.shape[:2]
-            boxes_px[:,[0,2]] = np.clip(boxes_px[:,[0,2]], 0, w0-1)
-            boxes_px[:,[1,3]] = np.clip(boxes_px[:,[1,3]], 0, h0-1)
+
+            if args.no_letterbox:
+                # Vi har gjort: img0 -> lb via ren resize till (img_size, img_size)
+                # x_net = x_orig * (img_size / w0)  =>  x_orig = x_net * (w0 / img_size)
+                # y_net = y_orig * (img_size / h0)  =>  y_orig = y_net * (h0 / img_size)
+                sx = w0 / float(args.img_size)
+                sy = h0 / float(args.img_size)
+                boxes_px[:, [0, 2]] *= sx
+                boxes_px[:, [1, 3]] *= sy
+            else:
+                # Klassisk letterbox: uniform scale + pad
+                boxes_px[:, [0, 2]] -= padx
+                boxes_px[:, [1, 3]] -= pady
+                boxes_px /= max(scale, 1e-6)
+
+            # Clippa till bildgränser
+            boxes_px[:, [0, 2]] = np.clip(boxes_px[:, [0, 2]], 0, w0 - 1)
+            boxes_px[:, [1, 3]] = np.clip(boxes_px[:, [1, 3]], 0, h0 - 1)
+
             t_post1 = time.perf_counter()
 
             pre_ms   = (t_pre1 - t_pre0)*1000.0
