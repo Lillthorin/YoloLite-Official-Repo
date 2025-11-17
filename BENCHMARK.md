@@ -43,8 +43,6 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 | currency              | 0.583  | 0.514  | 0.963 | 0.914 | 0.979  | 0.977 |
 | cable damage          | 0.910  | 0.574  | 0.820 | 0.762 | 0.---  | 0.838 |
 | apples                | 0.779  | 0.791  | 0.687 | 0.692 | 0.---  | 0.742 |
-
-
 | secondary chains      | 0.341  | 0.312  | 0.209 | 0.257 | 0.284  | 0.285 |
 | marbels               | 0.992  | 0.473  | 0.799 | 0.715 | 0.823  | 0.803 |
 | leaf disease          | 0.531  | 0.560  | 0.543 | 0.516 | 0.544  | 0.538 |
@@ -107,6 +105,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
