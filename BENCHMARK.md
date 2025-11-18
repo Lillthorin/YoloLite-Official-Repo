@@ -150,6 +150,16 @@ V2_Models  NaN == Not tested
 | CPU    | 87.05ms  | NaN    | 156.59ms   | NaN  |
 | GPU    | 21.07ms   | NaN   | 25.65ms   | NaN   | 
 
+# Params and flops
+*Updates for all models will come shortly*
+
+| Modell         |   Params (M) |     MACs (G) |    FLOPs (G)  |
+| -------------- | -----------: | -----------: | -----------: | 
+| **edge_n**     |  **0.553 M** |  **0.755 G** |  **1.511 G** | 
+| **edge_m**     |  **2.950 M** |  **3.870 G** |  **7.739 G** |    
+| **yololite_n** |  **8.923 M** | **11.473 G** | **22.946 G** |     
+| **yololite_m** | **17.916 M** | **27.239 G** | **54.478 G** |  
+
 
 # Training logs
 
@@ -167,6 +177,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
