@@ -2,13 +2,14 @@
 
 
 # Benchmark
+*On-going*
+Last update: 2025-11-18
+Version: 1.0
 
-A short benchmark was done on five different datasets fetched from roboflow 100.
-
-https://universe.roboflow.com/roboflow-100
+Datasets were downloaded from : [Roboflow](https//universe.roboflow.com/roboflow-100)
 
 The mAP numbers for YOLOv5 and YOLOv7 models can be found in their paper
-"Roboflow 100: A Rich, Multi-Domain Object Detection Benchmark" - https://arxiv.org/abs/2211.13523v3
+"Roboflow 100: A Rich, Multi-Domain Object Detection Benchmark" - [Paper](https://arxiv.org/abs/2211.13523v3)
 
 
 **NEW VALUES AFTER UPDATED LOSS FUNCTION!**
@@ -177,6 +178,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
