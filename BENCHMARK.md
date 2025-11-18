@@ -99,6 +99,7 @@ No further optimization were done, speeds were calculated with:
     Throughput ≈ 102.06 img/s (Model only)
 
 **Edge_m**
+
     === Inference timing (ms) ===
     pre_ms    mean 3.29 | std 1.72 | p50 2.91 | p90 4.05 | p95 5.76
     infer_ms  mean 11.70 | std 2.73 | p50 10.62 | p90 16.11 | p95 17.51
@@ -166,6 +167,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
