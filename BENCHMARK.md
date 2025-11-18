@@ -76,9 +76,10 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 Hardware: 
 CPU AMD Ryzen 5 5500
 No further optimization were done, speeds were calculated with:
-python export/infer_onnx.py --img_dir "circuit voltages.v1-release-640.yolov8\test\images" --img_size 320 --model edge_{x}_320.onnx
+    -python export/infer_onnx.py --img_dir "circuit voltages.v1-release-640.yolov8\test\images" --img_size 320 --model edge_{x}_320.onnx
 
 **Edge_n**
+
     === Inference timing (ms) ===
     pre_ms    mean 3.38 | std 2.24 | p50 2.53 | p90 4.34 | p95 6.85
     infer_ms  mean 4.75 | std 1.07 | p50 4.37 | p90 6.02 | p95 6.62
@@ -88,6 +89,7 @@ python export/infer_onnx.py --img_dir "circuit voltages.v1-release-640.yolov8\te
     Throughput ≈ 210.38 img/s (Model only)
 
 **Edge_s**
+
     === Inference timing (ms) ===
     pre_ms    mean 2.95 | std 1.57 | p50 2.61 | p90 3.07 | p95 4.76
     infer_ms  mean 9.80 | std 1.46 | p50 10.36 | p90 11.22 | p95 11.40
@@ -106,6 +108,7 @@ python export/infer_onnx.py --img_dir "circuit voltages.v1-release-640.yolov8\te
     Throughput ≈ 85.49 img/s (Model only)
 
 **Edge_l**
+
     === Inference timing (ms) ===
     pre_ms    mean 3.61 | std 1.97 | p50 3.03 | p90 4.50 | p95 6.72
     infer_ms  mean 16.25 | std 2.51 | p50 16.31 | p90 19.53 | p95 20.69
@@ -163,6 +166,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
