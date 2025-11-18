@@ -77,41 +77,42 @@ Hardware:
 CPU AMD Ryzen 5 5500
 No further optimization were done, speeds were calculated with:
 python export/infer_onnx.py --img_dir "circuit voltages.v1-release-640.yolov8\test\images" --img_size 320 --model edge_{x}_320.onnx
+
 **Edge_n**
-=== Inference timing (ms) ===
-pre_ms    mean 3.38 | std 2.24 | p50 2.53 | p90 4.34 | p95 6.85
-infer_ms  mean 4.75 | std 1.07 | p50 4.37 | p90 6.02 | p95 6.62
-post_ms   mean 1.08 | std 1.28 | p50 0.68 | p90 1.64 | p95 3.00
-total_ms  mean 9.21 | std 3.74 | p50 7.83 | p90 12.85 | p95 16.55
-Throughput ≈ 108.59 img/s
-Throughput ≈ 210.38 img/s (Model only)
+    === Inference timing (ms) ===
+    pre_ms    mean 3.38 | std 2.24 | p50 2.53 | p90 4.34 | p95 6.85
+    infer_ms  mean 4.75 | std 1.07 | p50 4.37 | p90 6.02 | p95 6.62
+    post_ms   mean 1.08 | std 1.28 | p50 0.68 | p90 1.64 | p95 3.00
+    total_ms  mean 9.21 | std 3.74 | p50 7.83 | p90 12.85 | p95 16.55
+    Throughput ≈ 108.59 img/s
+    Throughput ≈ 210.38 img/s (Model only)
 
 **Edge_s**
-=== Inference timing (ms) ===
-pre_ms    mean 2.95 | std 1.57 | p50 2.61 | p90 3.07 | p95 4.76
-infer_ms  mean 9.80 | std 1.46 | p50 10.36 | p90 11.22 | p95 11.40
-post_ms   mean 0.70 | std 0.23 | p50 0.61 | p90 0.97 | p95 1.13
-total_ms  mean 13.45 | std 1.57 | p50 13.69 | p90 15.09 | p95 15.64
-Throughput ≈ 74.33 img/s
-Throughput ≈ 102.06 img/s (Model only)
+    === Inference timing (ms) ===
+    pre_ms    mean 2.95 | std 1.57 | p50 2.61 | p90 3.07 | p95 4.76
+    infer_ms  mean 9.80 | std 1.46 | p50 10.36 | p90 11.22 | p95 11.40
+    post_ms   mean 0.70 | std 0.23 | p50 0.61 | p90 0.97 | p95 1.13
+    total_ms  mean 13.45 | std 1.57 | p50 13.69 | p90 15.09 | p95 15.64
+    Throughput ≈ 74.33 img/s
+    Throughput ≈ 102.06 img/s (Model only)
 
 **Edge_m**
-=== Inference timing (ms) ===
-pre_ms    mean 3.29 | std 1.72 | p50 2.91 | p90 4.05 | p95 5.76
-infer_ms  mean 11.70 | std 2.73 | p50 10.62 | p90 16.11 | p95 17.51
-post_ms   mean 0.65 | std 0.14 | p50 0.60 | p90 0.87 | p95 0.91
-total_ms  mean 15.64 | std 3.29 | p50 14.18 | p90 20.41 | p95 21.53
-Throughput ≈ 63.94 img/s
-Throughput ≈ 85.49 img/s (Model only)
+    === Inference timing (ms) ===
+    pre_ms    mean 3.29 | std 1.72 | p50 2.91 | p90 4.05 | p95 5.76
+    infer_ms  mean 11.70 | std 2.73 | p50 10.62 | p90 16.11 | p95 17.51
+    post_ms   mean 0.65 | std 0.14 | p50 0.60 | p90 0.87 | p95 0.91
+    total_ms  mean 15.64 | std 3.29 | p50 14.18 | p90 20.41 | p95 21.53
+    Throughput ≈ 63.94 img/s
+    Throughput ≈ 85.49 img/s (Model only)
 
 **Edge_l**
-=== Inference timing (ms) ===
-pre_ms    mean 3.61 | std 1.97 | p50 3.03 | p90 4.50 | p95 6.72
-infer_ms  mean 16.25 | std 2.51 | p50 16.31 | p90 19.53 | p95 20.69
-post_ms   mean 0.77 | std 0.22 | p50 0.74 | p90 0.88 | p95 1.08
-total_ms  mean 20.62 | std 3.40 | p50 19.65 | p90 24.85 | p95 26.43
-Throughput ≈ 48.49 img/s
-Throughput ≈ 61.55 img/s (Model only)
+    === Inference timing (ms) ===
+    pre_ms    mean 3.61 | std 1.97 | p50 3.03 | p90 4.50 | p95 6.72
+    infer_ms  mean 16.25 | std 2.51 | p50 16.31 | p90 19.53 | p95 20.69
+    post_ms   mean 0.77 | std 0.22 | p50 0.74 | p90 0.88 | p95 1.08
+    total_ms  mean 20.62 | std 3.40 | p50 19.65 | p90 24.85 | p95 26.43
+    Throughput ≈ 48.49 img/s
+    Throughput ≈ 61.55 img/s (Model only)
 
 
 # Speed
@@ -162,6 +163,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
