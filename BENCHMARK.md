@@ -62,7 +62,7 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 
 
 
-# Extreme edge test --img_size 320 --use_p2
+# Extreme edge test --img_size 320 --use_p2 (CPU numbers!)
 
 | Dataset               | edge_n | edge_s | edge_m | edge_l |
 |-----------------------|:------:|:------:|:------:|:------:|
@@ -179,6 +179,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
