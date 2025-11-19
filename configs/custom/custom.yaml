@@ -1,11 +1,12 @@
 #Create custom yolo model
 model:
   arch: YOLOLiteMS_CPU
-  backbone: tf_efficientnetv2_b0
+  backbone: tf_efficientnet_lite0
   depth_multiple: 0.90
   width_multiple: 0.75
   fpn_channels: 256
   head_depth: 2
+
 
 
 
