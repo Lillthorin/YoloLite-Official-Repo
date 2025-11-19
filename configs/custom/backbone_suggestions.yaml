@@ -9,6 +9,8 @@ CPU:
   8: regnetx_3_2gf
   9: resnet18 
   10: mobilenetv4_conv_small  _050
+  11: mobilenetv4_conv_medium
+  12: mobilenetv4_conv_large
 
 
 GPU:
@@ -51,5 +53,6 @@ GPU:
   15: convnext_large
 
   16: tf_efficientnetv2_l
+
 
   17: swin_base_patch4_window7_224 
