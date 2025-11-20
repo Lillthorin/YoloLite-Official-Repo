@@ -148,7 +148,7 @@ CPU AMD Ryzen 5 5500
 GPU NVIDIA GeForce RTX 4060
 
 
-| Device | edge_l | edgle_m | edge_s | edge_n |
+| Device | edge_l | edge_m | edge_s | edge_n |
 |------: |------: |------:  |-------:|------:|
 | CPU    | 67.0ms  | 45.57ms    | 40.18ms   | 23.88ms  |
 | GPU    | 24.95ms   | 23.05ms    | 20.83ms   | 20.2ms   | 
@@ -187,6 +187,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
