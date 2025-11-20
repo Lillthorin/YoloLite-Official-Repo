@@ -40,7 +40,8 @@ Construct yaml as follow:
     --augment, default=True, action=argparse.BooleanOptionalAction swap with --no--augment
     --use_p6,  default=False, action=argparse.BooleanOptionalAction  #swaps p5 with p6 head 
     --use_p2,  default=False, action=argparse.BooleanOptionalAction  #swaps p3 with p2 head  
-    --resume, type=str, default=None, help="Resume training from last checkpoint if available"
+    --use_resize, default=False, action=argparse.BooleanOptionalAction, help = "Uses resize instead of letterbox"
+    --resume, type=str, default=None, help="Resume training from last checkpoint if available set path to checkpoint"
     --lr, type=float, default=None, help="Override learning rate if set"
     --save_every", type=int, default=25, help="Save every x epoch"
     --save_by, type=str, default='AP', help="Save best model by coco evaluation, viable settings [AP50, AP75, AP, AR, APS, APM, APL]"
@@ -133,6 +134,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
