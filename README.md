@@ -17,10 +17,11 @@ This repo focuses on ultra-fast, CPU-friendly object detection models for real i
  - yololite_n/m achieve the highest accuracy (0.69–0.70 mAP) but are GPU-oriented and not the primary focus.
 
 Overall: edge models provide the best accuracy-to-latency ratio for CPU deployments, making them ideal for Raspberry Pi, industrial PCs, embedded systems, and automation pipelines.
+
+
+
 <img width="600" height="400" alt="edge_vs_yololite_mAP_params" src="https://github.com/user-attachments/assets/b0961c74-280d-4ad1-8372-7512850ffade" />
 
-Fast CPU/GPU inference via ONNX Runtime, simple training pipeline, and Raspberry Pi friendly.
-**Current focus:** ONNX export + inference. (TensorRT/OpenVINO and segmentation may come later.)
 
 
 ## Dataset and training
@@ -151,6 +152,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
