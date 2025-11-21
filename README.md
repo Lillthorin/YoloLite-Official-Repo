@@ -2,6 +2,7 @@
 # YOLOLite – Lightweight YOLO for PyTorch (ONNX export)
 
 [BENCHMARK](BENCHMARK.md)
+<img width="1200" height="800" alt="edge_vs_yololite_mAP_params" src="https://github.com/user-attachments/assets/b0961c74-280d-4ad1-8372-7512850ffade" />
 
 Fast CPU/GPU inference via ONNX Runtime, simple training pipeline, and Raspberry Pi friendly.
 **Current focus:** ONNX export + inference. (TensorRT/OpenVINO and segmentation may come later.)
@@ -134,6 +135,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
