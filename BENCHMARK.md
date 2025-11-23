@@ -4,7 +4,7 @@
 # Benchmark
 *On-going*
 
-Last update: 2025-11-19
+Last update: 2025-11-23
 Version: 1.0
 
 ## Dataset Source
@@ -25,6 +25,8 @@ arXiv:2211.13523.**
 
 yololite_m and yololite_n refers to the models under models_v2 folder. 
 Some datasets are still in progress, table will be updated.
+
+N.A = training in progress
 
 Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
     python tools/train.py --model "configs/models/edge_{x}.yaml" --batch_size 8 --epochs 100 
@@ -67,6 +69,26 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 | cells                 | 0.249  | 0.085  | 0.522 | 0.349 | 0.582  | 0.582 |
 | aerial spheres        | 0.993  | 0.539  | 0.967 | 0.956 | 0.965  | 0.970 |
 | aquarium              | 0.790  | 0.822  | 0.614 | 0.489 | 0.698  | 0.667 |
+| vehicles              | 0.454  | 0.464  | 0.379 | 0.349 | 0.360  | 0.348 |
+| activity diagrams     | 0.427  | 0.509  | 0.631 | 0.436 | 0.639  | 0.611 |
+| peanuts               | 0.995  | 0.997  | 1.000 | 1.000 | 1.000  | 1.000 |
+| people in paintings   | 0.575  | 0.678  | 0.309 | 0.217 | 0.374  | 0.344 |
+| hand-gestures         | 0.995  | 0.995  | 0.999 | 1.000 | 1.000  | 0.999 |
+| truck-movement        | 0.786  | 0.846  | 0.681 | 0.658 | 0.685  | 0.682 |
+| cell towers           | 0.939  | 0.942  | 0.881 | 0.860 | N.A  | 0.896 |
+| document parts        | 0.677  | 0.666  | 0.629 | 0.651 | N.A  | 0.634 |
+| grass weeds           | 0.781  | 0.781  | 0.688 | 0.685 | N.A  | 0.681 |
+| trail camera          | 0.966  | 0.969  | 0.901 | 0.853 | N.A  | 0.916 |
+| tweeter posts         | 0.708  | 0.495  | 0.724 | 0.634 | N.A  | 0.666 |
+| tweeter profile       | 0.988  | 0.990  | 0.983 | 0.974 | N.A  | 0.976 |
+| cavity                | 0.782  | 0.799  | 0.625 | 0.573 | 0.612 | 0.634 |
+| avatar-recognition    | 0.889  | 0.943  | 0.742 | 0.652 | 0.786 | 0.741 |
+| pills                 | 0.869  | 0.867  | 0.861 | 0.849 | 0.860 | 0.854 |
+| wall damage           | 0.500  | 0.434  | 0.421 | 0.345 | N.A  | 0.456 |
+| corrosion             | 0.768  | 0.764  | 0.539 | 0.541 | 0.543  | 0.534 |
+| road traffic          | 0.597  | 0.847  | 0.659 | 0.507 | 0.672  | 0.631 |
+| road sign             | 0.963  | 0.944  | 0.927 | 0.938 | N.A  | N.A |
+| liver-disease         | 0.592  | 0.583  | 0.528 | 0.533 | N.A   | N.A  |
 
 
 
@@ -187,6 +209,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
