@@ -1,0 +1,12 @@
+#Test configuration for YOLOLiteMS_CPU model
+model:
+  arch: YOLOLiteMS_CPU
+  backbone: ghostnetv3_100
+  depth_multiple: 1.00
+  width_multiple: 1.00
+  fpn_channels: 196
+  head_depth: 1
+
+
+
+
