@@ -10,7 +10,7 @@ This repo focuses on ultra-fast, CPU-friendly object detection models for real i
 
  - edge_n (0.55M params) delivers ~0.62 mAP@0.5 while running at ~24 ms @640px and ~9 ms @320px, reaching 100–200+ FPS on CPU.
 
- - edge_m (2.95M params) reaches YOLOv5-level accuracy with 5–10× fewer parameters.
+ - edge_m (2.95M params) reaches YOLOv5-level accuracy with 3× fewer parameters.
 
  - Extreme edge mode (320px + P2) shows real-time CPU performance above 100 FPS with stable accuracy on small-object datasets.
 
@@ -152,6 +152,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
