@@ -89,8 +89,16 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 | road traffic          | 0.597  | 0.847  | 0.659 | 0.507 | 0.672  | 0.631 |
 | road sign             | 0.963  | 0.944  | 0.927 | 0.938 | N.A  | N.A |
 | liver-disease         | 0.592  | 0.583  | 0.528 | 0.533 | N.A   | N.A  |
-
-
+| wine labels           | 0.569  | 0.632  | 0.501 | 0.390 | N.A   | N.A  |
+| radio signal          | 0.673  | 0.653  | 0.591 | 0.587 | N.A   | N.A  |
+| paragraphs            | 0.626  | 0.610  | 0.488 | 0.442 | N.A   | N.A  |
+| halo infinite         | 0.921  | 0.924  | 0.825 | 0.786 | N.A   | N.A  |
+| cables                | 0.688  | 0.722  | 0.773 | 0.729 | N.A   | N.A  |
+| construction-safety   | 0.915  | 0.915  | 0.786 | 0.663 | N.A   | 0.813  |
+| smoke                 | 0.959  | 0.962  | 0.938 | 0.939 | 0.939 | 0.942  |
+| animals               | 0.761  | 0.342  | 0.647 | 0.493 | 0.744 | 0.725  |
+| phages                | 0.854  | 0.842  | 0.648 | 0.611 | 0.721 | 0.702 |
+| washroom              | 0.619  | 0.634  | 0.547 | 0.500 | N.A   | 0.553 |
 
 # Extreme edge test --img_size 320 --use_p2 (CPU numbers!)
 
@@ -102,14 +110,20 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 | circuit voltages      | 0.732  | 0.769  | 0.833 | 0.829 | 
 | x-ray                 | 0.699  | 0.803  | 0.817 | 0.815 | 
 | thermal dogs          | 0.827  | 0.916  | 0.943 | 0.918 | 
-
+| street work           | 0.374  | 0.510  | 0.496 | 0.561 |
+| activity diagrams     | 0.372  | 0.455  | 0.491 | 0.506 |
+| sign language         | 0.897  | 0.929  | 0.907 | 0.936 | 
+| marbels               | 0.825  | 0.887  | 0.871 | 0.887 |
+| road-sign             | 0.916  | 0.936  | 0.936 | 0.929 |
+| aerial-spheres        | 0.947  | 0.965  | 0.959 | 0.963 |
 
 # Speed for 320 --p2 
 Hardware: 
 CPU AMD Ryzen 5 5500
-No further optimization were done, speeds were calculated with:
-    -python export/infer_onnx.py --img_dir "circuit voltages.v1-release-640.yolov8\test\images" --img_size 320 --model edge_{x}_320.onnx
 
+No further optimization were done (simplify were skipped here but is supported), speeds were calculated with:
+    python export/export_onnx.py --weights best_model_state.pt --img_size 320 
+    python export/infer_onnx.py --img_dir "test\images" --img_size 320 --model edge_{x}_320.onnx
 **Edge_n**
 
     === Inference timing (ms) ===
@@ -210,6 +224,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
