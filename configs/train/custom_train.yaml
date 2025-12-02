@@ -2,30 +2,25 @@ logging:
   log_dir: runs/train
 
 loss:
-  lambda_box: 7.5        
-  lambda_obj: 1.0        
-  lambda_cls: 0.5       
-
-  focal_loss: false
-  focal: false           
-
+  lambda_box: 7.0
+  lambda_obj: 1.0
+  lambda_cls: 0.5
+  focal_loss: false           
   center_radius: 2.5
-  center_radius_cells: 2.5
   assign_cls_weight: 0.5
-  topk_limit: 40
-
-  gamma: 2
-  alpha: 0.25
-  cls_smoothing: 0.05
-
-  area_cells_min: 4
+  center_radius_cells:  2.5
+  topk_limit:  40
+  focal: False
+  gamma:  2
+  alpha:  0.25
+  cls_smoothing:  0.05
+  area_cells_min:  4
   area_cells_max: 256
-  area_tol: 1.25
-
-  size_prior_w: 0.2      # kan ev. sänkas till 0.1 om du vill mindre bias
-  ar_prior_w: 0.1        # samma här, går fint att låta stå
-  iou_cost_w: 3.0        # kan stå kvar
-  center_cost_w: 0.5     # kan stå kvar
+  area_tol:  1.25
+  size_prior_w: 0.2
+  ar_prior_w:  0.1
+  iou_cost_w:  3
+  center_cost_w: 0.5
 
 training:
   loss_type: simota           
@@ -38,17 +33,18 @@ training:
   freeze_backbone_epochs: 5
   grad_clip: 1.0
   #LR
-  lr: 7e-4                   # lite lägre än 1e-3 för större modell
-  bb_lr_mult: 0.25           # mer försiktig på backbone
-  neck_lr_mult: 1.0
+  lr: 1e-3
+  neck_lr_mult: 1.25
+  bb_lr_mult: 0.25
+  head_lr_mult: 1.75
 
   num_workers: 8
   optimizer: adamw
   save_every: 25
   scheduler: cosine
   seed: 1337
-  warmup_epochs: 3
-  weight_decay: 5e-4 
+  warmup_epochs: 0
+  weight_decay: 1e-4
   img_size: 640
   multi_scale_sizes: [320, 416, 512, 640]   
   augment: true
