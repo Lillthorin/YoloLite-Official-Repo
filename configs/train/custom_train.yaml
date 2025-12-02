@@ -33,7 +33,7 @@ training:
   freeze_backbone_epochs: 5
   grad_clip: 1.0
   #LR
-  lr: 1e-4
+  lr: 5e-4
   neck_lr_mult: 1.5
   bb_lr_mult: 0.5
   head_lr_mult: 1.75
@@ -53,5 +53,6 @@ training:
   save_by: 
   pretrained: true
   
+
 
 
