@@ -6,6 +6,8 @@ import torch.nn as nn
 from pathlib import Path
 import random
 from tqdm.auto import tqdm
+import matplotlib 
+matplotlib.use("Agg") 
 import matplotlib.pyplot as plt
 ROOT = os.getcwd()
 if str(ROOT) not in sys.path:
@@ -548,6 +550,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
