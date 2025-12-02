@@ -6,6 +6,8 @@ import torch.nn as nn
 from pathlib import Path
 import random
 from tqdm.auto import tqdm
+import matplotlib 
+matplotlib.use("Agg") 
 import matplotlib.pyplot as plt
 ROOT = os.getcwd()
 if str(ROOT) not in sys.path:
@@ -381,4 +383,5 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         
         
    
+
 
