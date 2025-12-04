@@ -30,31 +30,24 @@ except Exception:
     project_decode = None
 
 
-# =========================
-# Bygg modell från meta/config
-# =========================
-def build_model_from_meta(meta: dict) -> torch.nn.Module:
-    """
-    Bygger modellen på samma sätt som i train.py baserat på sparad meta['config'].
-    Faller tillbaka till meta-fält om något saknas i config.
-    """
-    cfg = meta.get("config", {}) or {}
+# ========= build model from meta/config =========
+def build_model_from_meta(meta: dict) -> nn.Module:
+    cfg  = meta.get("config", {}) or {}
     mcfg = cfg.get("model", {}) or {}
     tcfg = cfg.get("training", {}) or {}
-
-    arch = (meta.get("arch") or mcfg.get("arch") or "YOLOLiteMS").lower()
-    backbone = (meta.get("backbone") or mcfg.get("backbone") or "resnet18")
+    print(cfg)
+    arch        = (meta.get("arch") or mcfg.get("arch") or "YOLOLiteMS").lower()
+    backbone    = (meta.get("backbone") or mcfg.get("backbone") or "resnet18")
     num_classes = int(meta.get("num_classes") or mcfg.get("num_classes") or 80)
-
+    num_anchors_per_level = tuple(meta.get("num_anchors_per_level") or (1,1,1))
     fpn_channels   = int(mcfg.get("fpn_channels", 128))
     depth_multiple = float(mcfg.get("depth_multiple", 1.0))
     width_multiple = float(mcfg.get("width_multiple", 1.0))
     head_depth     = int(mcfg.get("head_depth", 1))
 
     img_size = int(tcfg.get("img_size", meta.get("img_size", 640)))
-    use_p6 = True if img_size > 640 else False
-    num_anchors_per_level = (1, 1, 1)
-
+    use_p6 = cfg["training"]["use_p6"]
+    use_p2 = cfg["training"]["use_p2"]
     if arch == "yololitems":
         model = YOLOLiteMS(
             backbone=backbone,
@@ -65,6 +58,7 @@ def build_model_from_meta(meta: dict) -> torch.nn.Module:
             head_depth=head_depth,
             num_anchors_per_level=num_anchors_per_level,
             use_p6=use_p6,
+            use_p2=use_p2
         )
     elif arch == "yololitems_cpu":
         model = YOLOLiteMS_CPU(
@@ -76,10 +70,10 @@ def build_model_from_meta(meta: dict) -> torch.nn.Module:
             head_depth=head_depth,
             num_anchors_per_level=num_anchors_per_level,
             use_p6=use_p6,
+            use_p2=use_p2
         )
     else:
         raise ValueError(f"Okänd arch i meta/config: {arch}")
-
     return model
 
 
@@ -561,3 +555,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
