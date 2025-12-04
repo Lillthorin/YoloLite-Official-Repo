@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 from typing import List, Tuple, Dict, Any, Optional
-
+import torch.nn as nn
 import cv2
 import numpy as np
 import torch
@@ -555,4 +555,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
