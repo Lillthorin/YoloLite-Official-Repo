@@ -24,7 +24,9 @@ from scripts.args.build_args import build_argparser, load_configs, apply_overrid
 from scripts.data.plot_metrics import plot_metrics
 from scripts.helpers.evaluate import evaluate_model
 
-def save_checkpoint_state(model, metrics: dict, class_names, config: dict, out_path: str):
+
+
+def save_checkpoint_state(model, metrics: dict, class_names, config: dict, out_path: str, num_anchors_per_level: tuple):
     cpu_state = {k: v.cpu() for k, v in model.state_dict().items()}
     meta = {
         "metric_key": metric_key,
@@ -34,17 +36,18 @@ def save_checkpoint_state(model, metrics: dict, class_names, config: dict, out_p
         "img_size": int(config["training"].get("img_size", 640)),
         "arch": config["model"]["arch"],
         "backbone": config["model"]["backbone"],
+        "num_anchors_per_level": num_anchors_per_level,
         "config": config,  
     }
     torch.save({"state_dict": cpu_state, "meta": meta}, out_path)
 
-def _build_num_anchors(use_p6, use_p2):
+def _build_num_anchors(use_p6, use_p2, num):
     if use_p2 and use_p6:
-        return (1, 1, 1, 1, 1)
+        return (num, num, num, num, num)
     if use_p2 or use_p6:
-        return (1, 1, 1, 1)
+        return (num, num, num, num)
     else:
-        return (1, 1, 1)
+        return (num, num, num)
 def plot_metric_vs_conf(x, y, title, ylabel, best_idx, fixed_conf, out_path):
     import numpy as np, matplotlib.pyplot as plt
     plt.figure()
@@ -132,7 +135,8 @@ if __name__ == "__main__":
     
 
     batch_size = config["training"]["batch_size"]
-    num_anchors_per_level = _build_num_anchors(config["training"]["use_p6"], config["training"]["use_p2"])
+    num = config["model"]["num_anchors_per_level"]
+    num_anchors_per_level = _build_num_anchors(config["training"]["use_p6"], config["training"]["use_p2"], num)
     if config["model"]["arch"].lower() == 'yololitems':              
         # --- Modell ---
         model = YOLOLiteMS(
@@ -256,6 +260,9 @@ if __name__ == "__main__":
         ckpt = torch.load(config["training"]["resume"], map_location=DEVICE) 
         missing, unexpected = model.load_state_dict(ckpt["state_dict"], strict=False)
         print("missing:", len(missing), "unexpected:", len(unexpected))
+        
+        
+
     print(model)
     print(f"Starting training on {DEVICE}, {len(train_ds)} train images, {len(val_ds)} val images, img-size: {IMG_SIZE}")
     best_val = float(0.000)
@@ -486,7 +493,7 @@ if __name__ == "__main__":
             best_metric = current
             # Spara EN fil: state_dict + metadata. Undvik torch.save(model)
             model_eval_cpu = model_eval.to("cpu").eval()
-            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_ckpt_path)
+            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_ckpt_path, num_anchors_per_level)
             model_eval.to(DEVICE).eval()
             print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_ckpt_path}")
            
@@ -496,7 +503,7 @@ if __name__ == "__main__":
             best_metric_no_aug = current
             # Spara EN fil: state_dict + metadata. Undvik torch.save(model)
             model_eval_cpu = model_eval.to("cpu").eval()
-            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_no_aug)
+            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_no_aug, num_anchors_per_level)
             model_eval.to(DEVICE).eval()
             print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_no_aug}")   
     
@@ -518,10 +525,10 @@ if __name__ == "__main__":
         if (epoch+1) % save_every == 0:
             save_path = os.path.join(weight_folder, f"epoch_{epoch+1}.pt")
             model_eval_cpu = model_eval.to("cpu").eval()
-            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, save_path)   
+            save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, save_path, num_anchors_per_level)   
             model_eval.to(DEVICE).eval()
         model_eval_cpu = model_eval.to("cpu").eval()
-        save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, last_ckpt_path)
+        save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, last_ckpt_path, num_anchors_per_level)
         model_eval.to(DEVICE).eval()        
         # En enda kort sammanfattningsrad per epoch
         
