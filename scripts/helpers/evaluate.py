@@ -9,12 +9,181 @@ from tqdm.auto import tqdm
 import matplotlib 
 matplotlib.use("Agg") 
 import matplotlib.pyplot as plt
+from collections import defaultdict
+import seaborn as sns
 ROOT = os.getcwd()
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 from scripts.helpers.helpers import  _coco_eval_from_lists, _decode_batch_to_coco_dets, _xyxy_to_xywh
 from scripts.data.p_r_f1 import build_curves_from_coco
+from sklearn.metrics import confusion_matrix
+import numpy as np
 
+
+def xywh_to_xyxy(box):
+    x, y, w, h = box
+    return np.array([x, y, x + w, y + h], dtype=np.float32)
+
+def iou_matrix(boxes1, boxes2):
+    """
+    boxes1: (N, 4) xyxy
+    boxes2: (M, 4) xyxy
+    return: (N, M) IoU
+    """
+    if len(boxes1) == 0 or len(boxes2) == 0:
+        return np.zeros((len(boxes1), len(boxes2)), dtype=np.float32)
+
+    b1 = boxes1[:, None, :]  # (N,1,4)
+    b2 = boxes2[None, :, :]  # (1,M,4)
+
+    # Intersektion
+    inter_x1 = np.maximum(b1[..., 0], b2[..., 0])
+    inter_y1 = np.maximum(b1[..., 1], b2[..., 1])
+    inter_x2 = np.minimum(b1[..., 2], b2[..., 2])
+    inter_y2 = np.minimum(b1[..., 3], b2[..., 3])
+
+    inter_w = np.clip(inter_x2 - inter_x1, a_min=0, a_max=None)
+    inter_h = np.clip(inter_y2 - inter_y1, a_min=0, a_max=None)
+    inter_area = inter_w * inter_h
+
+    # Areor
+    area1 = (boxes1[:, 2] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 1])
+    area2 = (boxes2[:, 2] - boxes2[:, 0]) * (boxes2[:, 3] - boxes2[:, 1])
+
+    union = area1[:, None] + area2[None, :] - inter_area
+    union = np.clip(union, a_min=1e-6, a_max=None)
+
+    return inter_area / union
+
+
+def create_confusion_matrix(
+    coco_anns,
+    coco_dets,
+    class_names,
+    SAVE_PATH,
+    filename="confusion_matrix.png",
+    title="Detection Confusion Matrix",
+    iou_thresh=0.5,
+    score_thresh=0.20
+):
+    """
+    Bygger en confusion matrix för objekt-detektion.
+    FP/FN mappas mot en extra 'background'-klass.
+    """
+
+    save_dir = os.path.join(SAVE_PATH, 'confusion_matrices')
+    os.makedirs(save_dir, exist_ok=True)
+    title = f"Confusion Matrix @ IoU {iou_thresh}, Score≥{score_thresh}"
+    num_classes = len(class_names)
+    bg_idx = num_classes  # sista index = background
+    class_names_with_bg = class_names + ["background"]
+
+    # Antag COCO category_id = 1..num_classes (justera annars)
+    cat_id_to_idx = {cid: cid - 1 for cid in range(1, num_classes + 1)}
+
+    # Gruppera per image_id
+    anns_by_img = defaultdict(list)
+    dets_by_img = defaultdict(list)
+    for ann in coco_anns:
+        anns_by_img[ann["image_id"]].append(ann)
+    for det in coco_dets:
+        dets_by_img[det["image_id"]].append(det)
+
+    y_true = []
+    y_pred = []
+
+    # Loopa över alla bilder som har GT (du kan alternativt union(a,b) om du vill ta med bilder utan GT)
+    for img_id, anns in anns_by_img.items():
+        gts = anns
+        dets = dets_by_img.get(img_id, [])
+
+        # --- FILTER: ta bort låga scores (VIKTIGT) ---
+        dets = [d for d in dets if d.get("score", 0.0) >= score_thresh]
+
+        # Sortera dets på score (högst först)
+        dets = sorted(dets, key=lambda d: d.get("score", 0.0), reverse=True)
+
+
+        # Konvertera till numpy
+        gt_boxes = np.array([xywh_to_xyxy(a["bbox"]) for a in gts], dtype=np.float32)
+        gt_labels = np.array([cat_id_to_idx[a["category_id"]] for a in gts], dtype=np.int64)
+
+        det_boxes = np.array([xywh_to_xyxy(d["bbox"]) for d in dets], dtype=np.float32) if dets else np.zeros((0, 4), dtype=np.float32)
+        det_labels = np.array([cat_id_to_idx[d["category_id"]] for d in dets], dtype=np.int64) if dets else np.zeros((0,), dtype=np.int64)
+
+        matched_gt = np.zeros(len(gts), dtype=bool)
+
+        # Matcha detectioner → GT
+        if len(dets) > 0 and len(gts) > 0:
+            ious = iou_matrix(det_boxes, gt_boxes)  # (num_dets, num_gts)
+        else:
+            ious = np.zeros((len(dets), len(gts)), dtype=np.float32)
+
+        for d_idx in range(len(dets)):
+            # hitta bästa GT för denna det
+            if len(gts) == 0:
+                # inga GT: ren FP
+                y_true.append(bg_idx)
+                y_pred.append(int(det_labels[d_idx]))
+                continue
+
+            iou_row = ious[d_idx]  # (num_gts,)
+            best_gt_idx = int(np.argmax(iou_row))
+            best_iou = iou_row[best_gt_idx]
+
+            if best_iou >= iou_thresh and not matched_gt[best_gt_idx]:
+                # True Positive – GT och pred får varsin klass
+                gt_cls = int(gt_labels[best_gt_idx])
+                det_cls = int(det_labels[d_idx])
+
+                y_true.append(gt_cls)
+                y_pred.append(det_cls)
+
+                matched_gt[best_gt_idx] = True
+            else:
+                # False Positive – background vs pred klass
+                det_cls = int(det_labels[d_idx])
+
+                y_true.append(bg_idx)
+                y_pred.append(det_cls)
+
+        # False Negatives – GT som aldrig matchades
+        for g_idx, was_matched in enumerate(matched_gt):
+            if not was_matched:
+                gt_cls = int(gt_labels[g_idx])
+
+                # True = GT klass, Pred = background
+                y_true.append(gt_cls)
+                y_pred.append(bg_idx)
+
+    # Nu har vi y_true och y_pred med samma längd
+    cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes + 1)))
+
+    # Rad-normalisering (per "True"-klass)
+    row_sums = cm.sum(axis=1, keepdims=True)
+    row_sums[row_sums == 0] = 1  # undvik division med 0
+    cm_normalized = cm.astype('float') / row_sums
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(
+        cm_normalized,
+        annot=True,
+        fmt=".2f",
+        cmap="Blues",
+        xticklabels=class_names_with_bg,
+        yticklabels=class_names_with_bg,
+        cbar=True
+    )
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('True')
+    ax.set_title(title)
+
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, filename))
+    plt.close()
 # utils/summary_cards.py
 from typing import Dict, List, Tuple, Optional, Union
 from PIL import Image, ImageDraw, ImageFont
@@ -172,7 +341,8 @@ def make_summary_image(
         img.save(save_path)
     return img
 
-def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, batch_size):
+def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, batch_size, class_names):
+    
     # -------------------- EVAL --------------------
     use_amp = True if torch.cuda.is_available() else False
     
@@ -254,6 +424,7 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
     coco_stats = _coco_eval_from_lists(
         coco_images, coco_anns, coco_dets, iouType="bbox", num_classes=NUM_CLASSES
     )
+    
     # Precision/Recall/F1-curves
     summary = build_curves_from_coco(
         coco_images=coco_images,
@@ -263,7 +434,7 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         iou=0.50,
         steps=201
     )
-
+    create_confusion_matrix(coco_anns, coco_dets, class_names, SAVE_PATH=log_dir, score_thresh=summary["best_conf"])
     # -------------------- BENCHMARK: GPU + CPU --------------------
     bench_batches = 10  # justera vid behov (3–10 brukar räcka)
 
@@ -383,5 +554,4 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         
         
    
-
 
