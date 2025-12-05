@@ -434,7 +434,7 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         iou=0.50,
         steps=201
     )
-    create_confusion_matrix(coco_anns, coco_dets, class_names, SAVE_PATH=log_dir, score_thresh=summary["best_conf"])
+    create_confusion_matrix(coco_anns, coco_dets, class_names, SAVE_PATH=log_dir, score_thresh=float(summary["best_conf"]))
     # -------------------- BENCHMARK: GPU + CPU --------------------
     bench_batches = 10  # justera vid behov (3–10 brukar räcka)
 
@@ -554,4 +554,5 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         
         
    
+
 
