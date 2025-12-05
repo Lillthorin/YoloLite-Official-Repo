@@ -158,7 +158,59 @@ def create_confusion_matrix(
 
     # Nu har vi y_true och y_pred med samma längd
     cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes + 1)))
+        # -------------------------------------------------
+    # RÄKNA TP / FP / FN (råa counts, INNAN normalisering)
+    # -------------------------------------------------
+    bg_idx = num_classes  # samma som tidigare
 
+    # TP per klass (exkl. background)
+    tp_per_class = np.diag(cm)[:-1]
+
+    # GT per klass (alla rad-element utom background-raden)
+    gt_per_class = cm[:-1, :].sum(axis=1)
+
+    # Pred per klass (alla kolumn-element utom background-kolumnen)
+    pred_per_class = cm[:, :-1].sum(axis=0)
+
+    # FN: GT som blivit predicerade som background
+    fn_per_class = cm[:-1, bg_idx]
+
+    # FP: background som blivit predicerade som resp. klass
+    fp_per_class = cm[bg_idx, :-1]
+
+    total_fp = int(fp_per_class.sum())
+    total_fn = int(fn_per_class.sum())
+
+    # Enkel per-klass precision/recall (skydd mot division med 0)
+    precision_per_class = np.divide(
+        tp_per_class,
+        (tp_per_class + fp_per_class),
+        out=np.zeros_like(tp_per_class, dtype=float),
+        where=(tp_per_class + fp_per_class) != 0
+    )
+
+    recall_per_class = np.divide(
+        tp_per_class,
+        (tp_per_class + fn_per_class),
+        out=np.zeros_like(tp_per_class, dtype=float),
+        where=(tp_per_class + fn_per_class) != 0
+    )
+
+    # Skriv ut / spara stats
+    stats_path = os.path.join(save_dir, filename.replace(".png", "_stats.txt"))
+    with open(stats_path, "w") as f:
+        f.write(f"Total FP: {total_fp}\n")
+        f.write(f"Total FN: {total_fn}\n\n")
+        f.write("Class\tTP\tFP\tFN\tPrecision\tRecall\n")
+        for i, cls in enumerate(class_names):
+            f.write(
+                f"{cls}\t"
+                f"{int(tp_per_class[i])}\t"
+                f"{int(fp_per_class[i])}\t"
+                f"{int(fn_per_class[i])}\t"
+                f"{precision_per_class[i]:.3f}\t"
+                f"{recall_per_class[i]:.3f}\n"
+            )
     # Rad-normalisering (per "True"-klass)
     row_sums = cm.sum(axis=1, keepdims=True)
     row_sums[row_sums == 0] = 1  # undvik division med 0
@@ -434,7 +486,7 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         iou=0.50,
         steps=201
     )
-    create_confusion_matrix(coco_anns, coco_dets, class_names, SAVE_PATH=log_dir, score_thresh=float(summary["best_conf"]))
+    create_confusion_matrix(coco_anns, coco_dets, class_names, SAVE_PATH=log_dir, score_thresh=summary["best_conf"])
     # -------------------- BENCHMARK: GPU + CPU --------------------
     bench_batches = 10  # justera vid behov (3–10 brukar räcka)
 
@@ -554,5 +606,4 @@ def evaluate_model(model, val_loader, log_dir, NUM_CLASSES, DEVICE, IMG_SIZE, ba
         
         
    
-
 
