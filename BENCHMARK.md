@@ -117,9 +117,63 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 | road-sign             | 0.916  | 0.936  | 0.936 | 0.929 |
 | aerial-spheres        | 0.947  | 0.965  | 0.959 | 0.963 |
 
-# Speed for 320 --p2 
+
+# Speed for 320 --p2
 Hardware: 
+
 CPU AMD Ryzen 5 5500
+
+No further optimization were done (simplify were skipped here but is supported), speeds were calculated with:
+    python export/export_onnx.py --weights best_model_state.pt --img_size 320 
+    python export/infer_onnx.py --img_dir "test\images" --img_size 320 --model edge_{x}_320.onnx
+**Edge_n**
+
+    === Inference timing (ms) ===
+    pre_ms    mean 2.50 | std 1.39 | p50 2.41 | p90 2.68 | p95 2.87
+    infer_ms  mean 7.31 | std 2.94 | p50 6.94 | p90 7.64 | p95 7.93
+    post_ms   mean 0.73 | std 0.16 | p50 0.75 | p90 0.93 | p95 1.01
+    total_ms  mean 10.54 | std 3.12 | p50 10.10 | p90 10.92 | p95 13.93
+    Throughput ≈ 94.90 img/s
+    Throughput ≈ 136.85 img/s (Model only)
+
+**Edge_s**
+
+    === Inference timing (ms) ===
+    pre_ms    mean 2.35 | std 0.80 | p50 2.16 | p90 2.63 | p95 2.68
+    infer_ms  mean 16.05 | std 2.96 | p50 16.19 | p90 17.71 | p95 17.87
+    post_ms   mean 0.72 | std 0.18 | p50 0.73 | p90 0.97 | p95 1.06
+    total_ms  mean 19.11 | std 2.98 | p50 19.16 | p90 20.93 | p95 21.66
+    Throughput ≈ 52.32 img/s
+    Throughput ≈ 62.30 img/s (Model only)
+
+
+**Edge_m**
+
+    === Inference timing (ms) ===
+    pre_ms    mean 2.43 | std 0.71 | p50 2.46 | p90 2.68 | p95 2.87
+    infer_ms  mean 22.70 | std 4.18 | p50 23.22 | p90 24.84 | p95 25.15
+    post_ms   mean 0.76 | std 0.18 | p50 0.75 | p90 1.07 | p95 1.08
+    total_ms  mean 25.89 | std 4.14 | p50 26.01 | p90 28.23 | p95 28.69
+    Throughput ≈ 38.62 img/s
+    Throughput ≈ 44.05 img/s (Model only)
+
+
+**Edge_l**
+    
+    === Inference timing (ms) ===
+    pre_ms    mean 2.44 | std 0.87 | p50 2.31 | p90 2.71 | p95 2.85
+    infer_ms  mean 35.17 | std 6.32 | p50 35.97 | p90 38.54 | p95 39.12
+    post_ms   mean 0.78 | std 0.15 | p50 0.80 | p90 0.93 | p95 1.09
+    total_ms  mean 38.39 | std 6.42 | p50 39.53 | p90 41.79 | p95 42.11
+    Throughput ≈ 26.05 img/s
+    Throughput ≈ 28.43 img/s (Model only)
+
+
+# Speed for 320 
+Hardware: 
+
+CPU AMD Ryzen 5 5500
+The numbers below shows the numbers WITHOUT p2, due to a misstake during export, the P2 head was not included!
 
 No further optimization were done (simplify were skipped here but is supported), speeds were calculated with:
     python export/export_onnx.py --weights best_model_state.pt --img_size 320 
@@ -224,6 +278,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
