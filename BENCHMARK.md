@@ -122,6 +122,7 @@ Benchmark was done with epochs = 100 and batch size = 8 and img_size 640.
 Hardware: 
 
 CPU AMD Ryzen 5 5500
+Image size input 640x480
 
 No further optimization were done (simplify were skipped here but is supported), speeds were calculated with:
     python export/export_onnx.py --weights best_model_state.pt --img_size 320 
@@ -278,6 +279,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
