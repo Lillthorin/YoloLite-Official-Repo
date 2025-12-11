@@ -2,9 +2,9 @@ logging:
   log_dir: runs/train
 
 loss:
-  lambda_box: 7.0
-  lambda_obj: 1.0
-  lambda_cls: 0.5
+  lambda_box: 5.0
+  lambda_obj: 0.75
+  lambda_cls: 1.0
   focal_loss: false           
   center_radius: 2.5
   assign_cls_weight: 0.5
@@ -14,7 +14,7 @@ loss:
   gamma:  2
   alpha:  0.25
   cls_smoothing:  0.05
-  area_cells_min:  4
+  area_cells_min:  0.5
   area_cells_max: 256
   area_tol:  1.25
   size_prior_w: 0.2
