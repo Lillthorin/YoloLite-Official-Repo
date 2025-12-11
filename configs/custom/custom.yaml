@@ -1,11 +1,12 @@
 #Create custom yolo model
 model:
   arch: YOLOLiteMS_CPU
-  backbone: mobileone_s0
+  backbone: cs3darknet_focus_s
   depth_multiple: 0.90
   width_multiple: 0.75
   fpn_channels: 256
   head_depth: 2
+
 
 
 
