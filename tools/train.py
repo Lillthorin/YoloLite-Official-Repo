@@ -167,35 +167,32 @@ if __name__ == "__main__":
 
     # --- Loss ---
   
+    loss_cfg = config.get("loss", {})
+
     criterion = LossAF(
-    num_classes=NUM_CLASSES,
-    img_size=IMG_SIZE,
-
-    # --- weights & toggles ---
-    lambda_box=config.get("lambda_box", 5.0),
-    lambda_obj=config.get("lambda_obj", 1.0),
-    lambda_cls=config.get("lambda_cls", 1.0),
-    focal=config.get("focal", False),
-    gamma=config.get("gamma", 2.0),
-    alpha=config.get("alpha", 0.25),
-    cls_smoothing=config.get("cls_smoothing", 0.05),
-
-    # --- matcher/assigner ---
-    assign_cls_weight=config.get("assign_cls_weight", 0.5),
-    center_radius_cells=config.get("center_radius_cells", 2.0),
-    topk_limit=config.get("topk_limit", 20),
-
-    # --- scale/area guards ---
-    area_cells_min=config.get("area_cells_min", 4),
-    area_cells_max=config.get("area_cells_max", 256),
-    area_tol=config.get("area_tol", 1.25),
-
-    # --- priors & costs ---
-    size_prior_w=config.get("size_prior_w", 0.2),
-    ar_prior_w=config.get("ar_prior_w", 0.1),
-    iou_cost_w=config.get("iou_cost_w", 3.0),
-    center_cost_w=config.get("center_cost_w", 0.5),
-)
+        num_classes=NUM_CLASSES,
+        img_size=IMG_SIZE,
+        lambda_box=loss_cfg.get("lambda_box", 5.0),
+        lambda_obj=loss_cfg.get("lambda_obj", 1.0),
+        lambda_cls=loss_cfg.get("lambda_cls", 1.0),
+        focal=loss_cfg.get("focal", False),
+        gamma=loss_cfg.get("gamma", 2.0),
+        alpha=loss_cfg.get("alpha", 0.25),
+        cls_smoothing=loss_cfg.get("cls_smoothing", 0.05),
+    
+        assign_cls_weight=loss_cfg.get("assign_cls_weight", 0.5),
+        center_radius_cells=loss_cfg.get("center_radius_cells", 2.0),
+        topk_limit=loss_cfg.get("topk_limit", 20),
+    
+        area_cells_min=loss_cfg.get("area_cells_min", 4),
+        area_cells_max=loss_cfg.get("area_cells_max", 256),
+        area_tol=loss_cfg.get("area_tol", 1.25),
+    
+        size_prior_w=loss_cfg.get("size_prior_w", 0.2),
+        ar_prior_w=loss_cfg.get("ar_prior_w", 0.1),
+        iou_cost_w=loss_cfg.get("iou_cost_w", 3.0),
+        center_cost_w=loss_cfg.get("center_cost_w", 0.5),
+    )
    
     # ---- safe float helper ----
     def f(x, default=None):
@@ -557,6 +554,7 @@ if __name__ == "__main__":
 
     
     
+
 
 
 
