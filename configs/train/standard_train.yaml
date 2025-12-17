@@ -6,9 +6,10 @@ loss:
   lambda_obj: 1.0
   lambda_cls: 1.0
 
-  cls_smoothing: 0.0
-  size_prior_w: 0.0
-  ar_prior_w: 0.0
+  cls_smoothing: 0.03
+  size_prior_w: 0.003
+  ar_prior_w: 0.002
+
 
   center_radius: 3.5
   center_radius_cells: 3.5
@@ -53,6 +54,7 @@ training:
   save_by: 
   pretrained: true
   
+
 
 
 
