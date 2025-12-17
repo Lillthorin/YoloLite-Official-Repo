@@ -2,25 +2,25 @@ logging:
   log_dir: runs/train
 
 loss:
-  lambda_box: 5.0
-  lambda_obj: 0.75
+  lambda_box: 6.5
+  lambda_obj: 1.0
   lambda_cls: 1.0
-  focal_loss: false           
-  center_radius: 2.5
-  assign_cls_weight: 0.5
-  center_radius_cells:  2.5
-  topk_limit:  40
-  focal: False
-  gamma:  2
-  alpha:  0.25
-  cls_smoothing:  0.05
-  area_cells_min:  0.5
+
+  cls_smoothing: 0.0
+  size_prior_w: 0.0
+  ar_prior_w: 0.0
+
+  center_radius: 3.5
+  center_radius_cells: 3.5
+  topk_limit: 40
+
+  area_cells_min: 0.0
   area_cells_max: 256
-  area_tol:  1.25
-  size_prior_w: 0.2
-  ar_prior_w:  0.1
-  iou_cost_w:  3
-  center_cost_w: 0.5
+  area_tol: 1.75
+
+  iou_cost_w: 2.0
+  center_cost_w: 0.25
+  assign_cls_weight: 1.0
 
 training:
   loss_type: simota           
@@ -53,6 +53,7 @@ training:
   save_by: 
   pretrained: true
   
+
 
 
 
