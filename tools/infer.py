@@ -35,7 +35,7 @@ def build_model_from_meta(meta: dict) -> nn.Module:
     cfg  = meta.get("config", {}) or {}
     mcfg = cfg.get("model", {}) or {}
     tcfg = cfg.get("training", {}) or {}
-    print(cfg)
+    
     arch        = (meta.get("arch") or mcfg.get("arch") or "YOLOLiteMS").lower()
     backbone    = (meta.get("backbone") or mcfg.get("backbone") or "resnet18")
     num_classes = int(meta.get("num_classes") or mcfg.get("num_classes") or 80)
@@ -92,9 +92,9 @@ def load_model_names_imgsize_from_ckpt(weights: str, device: torch.device):
     model = build_model_from_meta(meta)
     missing, unexpected = model.load_state_dict(ckpt["state_dict"], strict=False)
     if missing:
-        print(f"[load_state_dict] saknade nycklar: {len(missing)}")
+        print(f"[load_state_dict] missing keys: {len(missing)}")
     if unexpected:
-        print(f"[load_state_dict] oväntade nycklar: {len(unexpected)}")
+        print(f"[load_state_dict] unexpected keys: {len(unexpected)}")
 
     model.to(device).eval()
     names = meta.get("names") or [str(i) for i in range(int(meta.get("num_classes", 80)))]
