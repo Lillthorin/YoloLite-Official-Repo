@@ -173,10 +173,13 @@ No further optimization were done (simplify were skipped here but is supported),
 # Speed for 320 
 Hardware: 
 
-CPU AMD Ryzen 5 5500
-The numbers below shows the numbers WITHOUT p2, due to a misstake during export, the P2 head was not included!
-
-No further optimization were done (simplify were skipped here but is supported), speeds were calculated with:
+    CPU AMD Ryzen 5 5500
+    CPU speed tables excludes P2 head due to export mistake; listed for reference only
+    
+    The numbers below shows the numbers WITHOUT p2, due to a misstake during export, the P2 head was not included!
+    
+    No further optimization were done (simplify were skipped here but is supported), speeds were calculated with:
+    
     python export/export_onnx.py --weights best_model_state.pt --img_size 320 
     python export/infer_onnx.py --img_dir "test\images" --img_size 320 --model edge_{x}_320.onnx
 **Edge_n**
@@ -279,6 +282,7 @@ You can check these to see the models progress.
 
 
 More information about plots are comming. 
+
 
 
 
