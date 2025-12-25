@@ -86,6 +86,19 @@ To create a custom model use the custom.yaml template and choose any backbone av
  - head_depth: 2 /int
 
 ![alt text](images/image1.png)
+## Evaluate
+
+To evaluate you model on test images or new, unseen images use the tools/evaluate.py scrip
+
+    --weights, required=True, help="Path to model weights
+    --test_folder, required=True, help="path to test/val folder containing images and labels"
+    --img_size", type=int, default=0, help="Override of meta.img_size"
+    --device", default="0"
+    --batch_size", type=int, default=8
+    --no_letterbox", action="store_true", help="ses resize instead of letterbox
+
+
+    !python tools/evaluate.py --weights "path/to/model.pt --test_folder "path/to/test/folder"
 
 ## Inference
 
@@ -152,6 +165,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
