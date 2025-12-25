@@ -2,6 +2,7 @@
 # YOLOLite – Lightweight YOLO for PyTorch (ONNX export)
 
 [BENCHMARK](BENCHMARK.md)
+[Evaluation](MODEL_EVALUATION.md)
 
 
 🔥 TL;DR – Benchmark Summary
@@ -165,6 +166,7 @@ To test trained models inference use tools/infer.py:
 
 
     python export/infer_onnx.py --model runs/export/1/model_decoded.onnx --img image1.jpg --img_size 640
+
 
 
 
