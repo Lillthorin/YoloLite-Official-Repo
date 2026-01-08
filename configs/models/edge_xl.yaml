@@ -1,0 +1,8 @@
+#Edge_xl
+model:
+  arch: YOLOLiteMS_CPU
+  backbone: hgnetv2_b0
+  depth_multiple: 1.0
+  width_multiple: 1.0
+  fpn_channels: 256
+  head_depth: 3
