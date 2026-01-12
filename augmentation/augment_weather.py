@@ -77,10 +77,24 @@ def read_yolo_bboxes(label_path: Path) -> Tuple[List[List[float]], List[int]]:
             parts = line.strip().split()
             if len(parts) < 5:
                 continue
-            cls = int(parts[0])
-            x, y, w, h = map(float, parts[1:5])
-            boxes.append([x, y, w, h])
-            labels.append(cls)
+            if len(parts) > 5:
+                pts01 = np.asarray(list(map(float, parts[1:])), dtype=np.float32).reshape(-1, 2)
+                xmin, ymin = pts01.min(axis=0)
+                xmax, ymax = pts01.max(axis=0)
+                cx = (xmin + xmax) * 0.5
+                cy = (ymin + ymax) * 0.5
+                w  = (xmax - xmin)
+                h  = (ymax - ymin)
+                # skydda mot degenererade polygoner
+                eps = 1e-8
+                cls = int(parts[0])
+                boxes.append([float(cx), float(cy), float(max(w, eps)), float(max(h, eps))])
+                labels.append(cls)
+            else:  
+                cls = int(parts[0])
+                x, y, w, h = map(float, parts[1:5])
+                boxes.append([x, y, w, h])
+                labels.append(cls)
     return boxes, labels
 
 def write_yolo_bboxes(label_path: Path, boxes: List[List[float]], labels: List[int]):
@@ -285,3 +299,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
