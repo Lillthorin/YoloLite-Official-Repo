@@ -199,12 +199,28 @@ class YoloDataset(Dataset):
         ph, pw = patch.shape[:2]
         h, w = img.shape[:2]
 
+        # --- FIX START: Kontrollera att patchen får plats ---
+        if ph >= h or pw >= w:
+            # Alternativ A: Patchen är större än målbilden -> Hoppa över cutmix denna gång
+            return img, boxes, labels
+            
+            # Alternativ B (om du hellre vill det): Skala ner patchen
+            # scale = min(h/ph, w/pw) * 0.9
+            # patch = cv2.resize(patch, (int(pw*scale), int(ph*scale)))
+            # ph, pw = patch.shape[:2]
+        # --- FIX END ---
+
         # Enkel logik för paste
         cx = random.randint(0, max(0, w - pw))
         cy = random.randint(0, max(0, h - ph))
         
         # Klistra in
         roi = img[cy:cy+ph, cx:cx+pw]
+        
+        # --- SÄKERHETSCHECK: Om NumPy slicade ROI pga kanterna ---
+        if roi.shape[:2] != patch.shape[:2]:
+            return img, boxes, labels
+
         img[cy:cy+ph, cx:cx+pw] = (alpha * patch + (1 - alpha) * roi).astype(np.uint8)
 
         # Lägg till ny box till existerande (NumPy concat)
@@ -252,4 +268,5 @@ class YoloDataset(Dataset):
         except Exception as e:
             print(f"[ERROR] {self.img_files[idx]}: {e}")
             # Returnera en tom tensor istället för crash, så DataLoader kan fortsätta
+
             return torch.zeros((3, self.img_size, self.img_size)), {"boxes": torch.zeros((0,4)), "labels": torch.zeros((0,))}
