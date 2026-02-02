@@ -538,7 +538,7 @@ if __name__ == "__main__":
             model_eval_cpu = model_eval.to("cpu").eval()
             save_checkpoint_state(model_eval_cpu, coco_stats, class_names, config, best_no_aug, num_anchors_per_level)
             model_eval.to(DEVICE).eval()
-            print(f"✓ New best {metric_key}={best_metric:.4f} saved to {best_no_aug}")   
+            print(f"✓ New best {metric_key}={best_metric_no_aug:.4f} saved to {best_no_aug}")   
     
         # Losscurve
         try:
@@ -585,4 +585,5 @@ if __name__ == "__main__":
         ckpt = torch.load(best_no_aug, map_location=DEVICE) 
     missing, unexpected = model.load_state_dict(ckpt["state_dict"], strict=False)
     model.eval()
+
     evaluate_model(model=model, val_loader=val_loader, log_dir=log_dir, NUM_CLASSES=NUM_CLASSES, DEVICE=DEVICE, IMG_SIZE=IMG_SIZE, batch_size=batch_size, class_names=class_names)
