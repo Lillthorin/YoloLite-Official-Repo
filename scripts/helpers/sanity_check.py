@@ -58,8 +58,8 @@ def visualize_batch(images, targets, save_path="sanity_check.jpg", max_images=4)
     print(f"✅ Sanity check sparad till {save_path}")
 
 if __name__ == "__main__":
-    img_dir = r"C:\Users\skhMATN\OneDrive - Stora Enso OYJ\Skrivbordet\Test_modell\dataset\valid\images"
-    label_dir = r"C:\Users\skhMATN\OneDrive - Stora Enso OYJ\Skrivbordet\Test_modell\dataset\valid\labels"
+    img_dir = 
+    label_dir = 
     img_size = 640
     batch_size = 8
 
