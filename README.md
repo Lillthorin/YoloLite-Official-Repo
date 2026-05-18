@@ -1,6 +1,6 @@
 
 # YOLOLite – Lightweight YOLO for PyTorch (ONNX export)
-
+# YoloLite V2 is now available via !pip install yololite 
 [BENCHMARK](BENCHMARK.md)
 [Evaluation](MODEL_EVALUATION.md)
 
