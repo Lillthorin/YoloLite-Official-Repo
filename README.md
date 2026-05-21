@@ -17,7 +17,7 @@ Version 2 has been refactored into a standalone package. **You no longer need to
   
   model = YoloLite(r"yololite_mnv4_n.pt")
   
-  # Training pipeline (supports native optimizations like frozen backbone and cosine LR)
+#  Training pipeline (supports native optimizations like frozen backbone and cosine LR)
   model.train(
       data="data.yaml", 
       epochs=20, 
@@ -27,7 +27,8 @@ Version 2 has been refactored into a standalone package. **You no longer need to
       freeze_backbone=5
   )
   
-  # Inference 
+# Inference 
+
   results = model.predict(source="image.jpg")[0]
   
   print(results['boxes'])  # xyxy (np.ndarray)
