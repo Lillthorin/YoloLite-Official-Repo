@@ -13,19 +13,19 @@ YoloLite is an anchor-free object detection and instance segmentation framework 
 ### ⚠️ Repository Notice (V1 vs V2)
 Version 2 has been refactored into a standalone package. **You no longer need to clone this repository to use the framework. However there are differences between the two, make sure to validate before swapping** The source code for V1 remains here for historical reference, but all active usage should be done via pip.
   
-  from yololite import YoloLite
+    from yololite import YoloLite
   
-  model = YoloLite(r"yololite_mnv4_n.pt")
+    model = YoloLite(r"yololite_mnv4_n.pt")
   
 #  Training pipeline (supports native optimizations like frozen backbone and cosine LR)
-  model.train(
-      data="data.yaml", 
-      epochs=20, 
-      batch=8, 
-      accumulate=4, 
-      warmup=3, 
-      freeze_backbone=5
-  )
+    model.train(
+    data="data.yaml", 
+    epochs=20, 
+    batch=8, 
+    accumulate=4, 
+    warmup=3, 
+    freeze_backbone=5
+    )
   
 # Inference 
 
