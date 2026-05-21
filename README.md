@@ -12,6 +12,7 @@ YoloLite is an anchor-free object detection and instance segmentation framework 
 
 ### ⚠️ Repository Notice (V1 vs V2)
 Version 2 has been refactored into a standalone package. **You no longer need to clone this repository to use the framework. However there are differences between the two, make sure to validate before swapping** The source code for V1 remains here for historical reference, but all active usage should be done via pip.
+  
   from yololite import YoloLite
   
   model = YoloLite(r"yololite_mnv4_n.pt")
@@ -34,9 +35,7 @@ Version 2 has been refactored into a standalone package. **You no longer need to
   print(results['speed'])  # Profiling data in ms
 
 More updates will come shortly.
-## Installation
-```bash
-pip install yololite
+
 [BENCHMARK](BENCHMARK.md)
 [Evaluation](MODEL_EVALUATION.md)
 
