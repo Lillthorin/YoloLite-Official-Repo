@@ -1,6 +1,42 @@
 
 # YOLOLite – Lightweight YOLO for PyTorch (ONNX export)
-# YoloLite V2 is now available via !pip install yololite 
+YoloLite is an anchor-free object detection and instance segmentation framework designed specifically for CPU and edge inference environments.
+
+### Key Specifications
+* **CPU Latency:** ~25-30ms per frame on standard CPUs (post-ONNX export).
+* **Instance Segmentation:** Native support, models trained via COCOminitrain.
+* **Permissive License:** 100% Apache 2.0. No AGPL dependencies, suitable for closed-source and commercial automation pipelines.
+* **Modular Pipeline:** Predictable outputs using standard Python dictionaries and Numpy arrays.
+
+---
+
+### ⚠️ Repository Notice (V1 vs V2)
+Version 2 has been refactored into a standalone package. **You no longer need to clone this repository to use the framework. However there are differences between the two, make sure to validate before swapping** The source code for V1 remains here for historical reference, but all active usage should be done via pip.
+  from yololite import YoloLite
+  
+  model = YoloLite(r"yololite_mnv4_n.pt")
+  
+  # Training pipeline (supports native optimizations like frozen backbone and cosine LR)
+  model.train(
+      data="data.yaml", 
+      epochs=20, 
+      batch=8, 
+      accumulate=4, 
+      warmup=3, 
+      freeze_backbone=5
+  )
+  
+  # Inference 
+  results = model.predict(source="image.jpg")[0]
+  
+  print(results['boxes'])  # xyxy (np.ndarray)
+  print(results['masks'])  # Segmentation masks (np.ndarray | None)
+  print(results['speed'])  # Profiling data in ms
+
+More updates will come shortly.
+## Installation
+```bash
+pip install yololite
 [BENCHMARK](BENCHMARK.md)
 [Evaluation](MODEL_EVALUATION.md)
 
