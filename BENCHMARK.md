@@ -4,8 +4,98 @@
 # Benchmark
 *On-going*
 
-Last update: 2025-12-08
-Version: 1.0
+Last update: 2026-05-25
+Version: 1.1
+## New test run with the newer version that is pip installable
+To recreate this benchmark, I have shared the python filed used under benchmark.py
+
+### Test Split: Mask Wearing 1
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| YoloLite    | yololite_mnv4_n.pt |   0.694 |      0.404 |                   23.48 |      42.6 |
+| Ultralytics | yolo26n.pt         |   0.632 |      0.389 |                   29.58 |      33.8 |
+| Ultralytics | yolov10n.pt        |   0.585 |      0.377 |                   41.4  |      24.2 |
+| YoloLite    | yololite_cs3_n.pt  |   0.73  |      0.422 |                   48.68 |      20.5 |
+| Ultralytics | yolov8n            |   0.87  |      0.48  |                   57.32 |      17.4 |
+| YoloLite    | yololite_mnv4_s.pt |   0.654 |      0.394 |                   69.7  |      14.3 |
+| Ultralytics | yolo26s.pt         |   0.714 |      0.424 |                   96.03 |      10.4 |
+
+### Test Split: Circuit Voltages
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| Ultralytics | yolo26n.pt         |   0.851 |      0.408 |                   28.03 |      35.7 |
+| YoloLite    | yololite_mnv4_n.pt |   0.967 |      0.462 |                   28.43 |      35.2 |
+| Ultralytics | yolov10n.pt        |   0.787 |      0.397 |                   35.16 |      28.4 |
+| Ultralytics | yolov8n            |   0.982 |      0.493 |                   46.98 |      21.3 |
+| YoloLite    | yololite_cs3_n.pt  |   1     |      0.494 |                   54.56 |      18.3 |
+| YoloLite    | yololite_mnv4_s.pt |   0.913 |      0.417 |                   72.21 |      13.8 |
+| Ultralytics | yolo26s.pt         |   0.976 |      0.508 |                   86.84 |      11.5 |
+
+### Test Split: Wildfire Smoke
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| YoloLite    | yololite_mnv4_n.pt |   0.973 |      0.535 |                   27.59 |      36.2 |
+| Ultralytics | yolo26n.pt         |   0.943 |      0.562 |                   28.65 |      34.9 |
+| Ultralytics | yolov10n.pt        |   0.883 |      0.529 |                   32.5  |      30.8 |
+| Ultralytics | yolov8n            |   0.981 |      0.596 |                   36.16 |      27.7 |
+| YoloLite    | yololite_cs3_n.pt  |   0.975 |      0.572 |                   52.26 |      19.1 |
+| YoloLite    | yololite_mnv4_s.pt |   0.982 |      0.541 |                   69.32 |      14.4 |
+| Ultralytics | yolo26s.pt         |   0.966 |      0.544 |                   83.67 |      12   |
+
+### Test Split: Aerial Airport
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| Ultralytics | yolo26n.pt         |   0.911 |      0.565 |                   30.16 |      33.2 |
+| YoloLite    | yololite_mnv4_n.pt |   0.912 |      0.536 |                   34.61 |      28.9 |
+| Ultralytics | yolov10n.pt        |   0.928 |      0.565 |                   36.81 |      27.2 |
+| Ultralytics | yolov8n            |   0.942 |      0.587 |                   39.36 |      25.4 |
+| YoloLite    | yololite_cs3_n.pt  |   0.906 |      0.523 |                   51    |      19.6 |
+| YoloLite    | yololite_mnv4_s.pt |   0.923 |      0.545 |                   73.18 |      13.7 |
+| Ultralytics | yolo26s.pt         |   0.949 |      0.6   |                   86.46 |      11.6 |
+
+### Test Split: Human Detection In Floods A6Aun 5Xvpd 2Hvjd Sbyy 2
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| YoloLite    | yololite_mnv4_n.pt |   0.911 |      0.522 |                   27.15 |      36.8 |
+| Ultralytics | yolo26n.pt         |   0.912 |      0.545 |                   28.91 |      34.6 |
+| Ultralytics | yolov10n.pt        |   0.926 |      0.593 |                   35.9  |      27.9 |
+| Ultralytics | yolov8n            |   0.938 |      0.59  |                   39.57 |      25.3 |
+| YoloLite    | yololite_cs3_n.pt  |   0.924 |      0.541 |                   47.16 |      21.2 |
+| YoloLite    | yololite_mnv4_s.pt |   0.945 |      0.624 |                   68.03 |      14.7 |
+| Ultralytics | yolo26s.pt         |   0.913 |      0.525 |                   83.8  |      11.9 |
+
+### Test Split: Aerial Cows Kt2Wd 3Jxcj Uvfx 1
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| YoloLite    | yololite_mnv4_n.pt |   0.507 |      0.213 |                   25.81 |      38.7 |
+| Ultralytics | yolo26n.pt         |   0.615 |      0.252 |                   28.73 |      34.8 |
+| Ultralytics | yolov10n.pt        |   0.606 |      0.261 |                   34.11 |      29.3 |
+| Ultralytics | yolov8n            |   0.602 |      0.263 |                   38.02 |      26.3 |
+| YoloLite    | yololite_cs3_n.pt  |   0.529 |      0.232 |                   49.12 |      20.4 |
+| YoloLite    | yololite_mnv4_s.pt |   0.587 |      0.268 |                   63.56 |      15.7 |
+| Ultralytics | yolo26s.pt         |   0.719 |      0.332 |                   81.88 |      12.2 |
+
+### Test Split: Apoce Aerial Photographs For Object Detection Of Construction Equipment 6Raie Ur6Qc Absn 1
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| YoloLite    | yololite_mnv4_n.pt |   0.767 |      0.507 |                   29.31 |      34.1 |
+| Ultralytics | yolo26n.pt         |   0.716 |      0.511 |                   29.66 |      33.7 |
+| Ultralytics | yolov10n.pt        |   0.701 |      0.509 |                   35.54 |      28.1 |
+| Ultralytics | yolov8n            |   0.774 |      0.553 |                   37.86 |      26.4 |
+| YoloLite    | yololite_cs3_n.pt  |   0.754 |      0.511 |                   51.61 |      19.4 |
+| YoloLite    | yololite_mnv4_s.pt |   0.766 |      0.514 |                   67.03 |      14.9 |
+| Ultralytics | yolo26s.pt         |   0.731 |      0.508 |                   82.65 |      12.1 |
+
+### Test Split: Football Player Detection Kucab Fbcl7 Uj1Oi Gxtg 2
+| Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
+|:------------|:-------------------|--------:|-----------:|------------------------:|----------:|
+| YoloLite    | yololite_mnv4_n.pt |   0.656 |      0.379 |                   26.29 |      38   |
+| Ultralytics | yolo26n.pt         |   0.714 |      0.439 |                   28.19 |      35.5 |
+| Ultralytics | yolov10n.pt        |   0.706 |      0.426 |                   33.49 |      29.9 |
+| Ultralytics | yolov8n            |   0.682 |      0.418 |                   36.03 |      27.8 |
+| YoloLite    | yololite_cs3_n.pt  |   0.641 |      0.37  |                   46.8  |      21.4 |
+| YoloLite    | yololite_mnv4_s.pt |   0.697 |      0.404 |                   67.18 |      14.9 |
+| Ultralytics | yolo26s.pt         |   0.808 |      0.519 |                   82.39 |      12.1 |
 
 ## Dataset Source
 All datasets are taken from the Roboflow-100 benchmark:
