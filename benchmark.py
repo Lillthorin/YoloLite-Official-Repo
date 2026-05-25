@@ -11,6 +11,7 @@ from ultralytics import YOLO
 # *** IMPORTANT NOTICE FOR yololite ***
 # This script assumes that you have no train/det folder or that it is empty.
 # All models are speed/evauated on the test split of the repo and evaluated on test as well.
+# This benchmark requires version 1.1.9 of yololite to work correctly.
 # ==========================================
 DATASETS = [
             "data.yaml",
