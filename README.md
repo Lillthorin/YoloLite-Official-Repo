@@ -1,6 +1,12 @@
 
 # YOLOLite – Lightweight YOLO for PyTorch (ONNX export)
 YoloLite is an anchor-free object detection and instance segmentation framework designed specifically for CPU and edge inference environments.
+To see a summary for all the 8 datasets tested please visit [BENCHMARK](BENCHMARK.md), to recreate the benchmark see benchmark.py.
+More tests will be carried out. 
+
+![Pareto](images/pareto_front_map50.png)
+![Pareto](images/pareto_front_map5095.png)
+
 
 ### Key Specifications
 * **CPU Latency:** ~25-30ms per frame on standard CPUs (post-ONNX export).
