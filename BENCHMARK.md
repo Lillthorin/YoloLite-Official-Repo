@@ -8,6 +8,7 @@ Last update: 2026-05-25
 Version: 1.1
 ## New test run with the newer version that is pip installable
 To recreate this benchmark, I have shared the python filed used under benchmark.py
+CPU: AMD Ryzen 5 5500 
 
 ### Test Split: Mask Wearing 1
 | Framework   | Model              |   mAP50 |   mAP50-95 |   CPU ONNX Latency (ms) |   CPU FPS |
